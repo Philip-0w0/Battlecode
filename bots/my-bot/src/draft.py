@@ -1,12 +1,16 @@
-import cambc
-from randomness import below
+"""Economy-first draft. All choices are among the published champions."""
+import cambc as bc
+from cambc import game_map as gm
 
 
 def play():
-    # Choose randomly from the champions our team has not picked.
-    chosen = cambc.draft.current_draft(cambc.Team.ALLY)
-    available = [pick for pick in range(11) if pick not in chosen]  # Released champions only.
-
-    # Draft memory starts at byte zero and is copied to each champion.
-    cambc.draft_memory.submit(b"hello world")
-    cambc.draft.pick(available[below(len(available))])
+    chosen = bc.draft.current_draft(bc.Team.ALLY)
+    groups = gm.camp_groups()
+    clustered = sum(len(g) > 1 for g in groups)
+    D = bc.ChampionDraft
+    # Splash for grouped camps; sustained damage and remote shopping otherwise.
+    order = ([D.VARG, D.VENDETTA, D.TAVI, D.VESPER_VALE, D.RYTH]
+             if clustered else
+             [D.VENDETTA, D.TAVI, D.VESPER_VALE, D.VARG, D.RYTH])
+    bc.draft_memory.submit(b"FARM1" + bytes(order))
+    bc.draft.pick(next(p for p in order if p not in chosen))
