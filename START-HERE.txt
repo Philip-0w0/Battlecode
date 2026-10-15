@@ -1,0 +1,35 @@
+Battlecode Cambridge Autumn 2026
+Prepared 15 October 2026 with official CAMBC CLI 2.1.6.
+
+Open a PowerShell terminal in this battlecode folder.
+
+Your editable Python starter: bots/my-bot/
+Official baseline bots: bots/starter-python/, bots/starter-cpp/,
+                       bots/starter-rust/, bots/starter-ocaml/
+SDKs: sdk/
+Published maps: maps/ (9 downloaded)
+Rules and Python API supplied by you: docs/
+Portable Windows toolkit: tools/cambc.exe
+
+Run a short local check:
+  .\tools\cambc.exe run my-bot starter-python --rounds 50
+
+Run a full match and open its replay:
+  .\tools\cambc.exe run my-bot starter-python --view
+
+Refresh the official map pool:
+  .\tools\cambc.exe maps pull
+
+Create a source ZIP for submission:
+  .\tools\cambc.exe bundle my-bot -o submissions
+
+No account login or competition submission was performed.
+A 50-round Python-versus-Python setup check completed and saved a replay
+in replays/. This was a setup check, not a strategy evaluation.
+
+The CLI also installed its C++ dependencies in its standard cache:
+C:\Users\Phili\AppData\Local\cambc
+Rust and OCaml starter sources are included; their builds were not tested.
+
+Official setup guide:
+https://2026a.battlecode.co.uk/game/docs/first-bot
