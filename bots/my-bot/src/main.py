@@ -3,7 +3,7 @@ import traceback
 import sys
 import cambc
 import draft
-from bot import Bot
+from bot import Bot, TurnBudget
 
 
 def main():
@@ -14,6 +14,8 @@ def main():
                 draft.play()
             else:
                 bot.play_turn()
+        except TurnBudget:
+            print("budget yield", flush=True)
         except Exception as error:
             print(f"bot error: {error}", flush=True)
             traceback.print_exc(file=sys.stdout)

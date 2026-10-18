@@ -15,11 +15,12 @@ def main():
     parser.add_argument('--opponent', default='starter-python')
     parser.add_argument('--label', default='benchmark')
     parser.add_argument('--maps', nargs='*')
+    parser.add_argument('--map-dir', type=pathlib.Path)
     args = parser.parse_args()
     root = pathlib.Path(__file__).resolve().parents[1]
     output = root / 'replays' / args.label
     output.mkdir(parents=True, exist_ok=True)
-    maps = sorted((root / 'maps').glob('*.map26a'))
+    maps = sorted((args.map_dir or (root / 'maps')).glob('*.map26a'))
     rows = []
     for game_map in maps:
         if args.maps and game_map.stem not in args.maps:
@@ -49,7 +50,7 @@ def main():
                        opponent_gems=stats['teams'][1-side]['submittedGems'],
                        deaths=sum(c['deaths'] for c in allies),
                        gold=sum(c['earnedGold'] for c in allies),
-                       faults=stats['botFaults'][side], errors=sum(errors.values()))
+                       faults=stats['botFaults'][side], errors=sum(errors.values()), guarded_resets=stdout.count(b'guarded reset:'), budget_yields=stdout.count(b'budget yield'))
             rows.append(row)
             prefix.with_suffix('.errors.json').write_text(json.dumps(errors, indent=2), encoding='utf8')
             with (output / 'results.csv').open('w', newline='', encoding='utf8') as stream:
