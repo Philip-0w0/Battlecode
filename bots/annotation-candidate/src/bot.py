@@ -6,6 +6,7 @@ import cambc as bc
 from coordination import read_claims, write_claim, report, read_report, banking_mode, publish_gems, read_gems
 from cambc import game_map as gm
 from tactics import lethal_recent_loss, winning_load, favorable_fight
+from camp_policy import choose_economy_group
 
 T, I, C = bc.Team, bc.ItemType, bc.ChampionType
 
@@ -49,6 +50,7 @@ class Bot:
         self.group_stats = [(sum(c.base_stats().base_health for c in g),
                              sum(c.base_stats().base_strength for c in g),
                              any(c.is_monolith() for c in g)) for g in self.groups]
+        self.boss_camps={int(c) for index,g in enumerate(self.groups) if self.group_stats[index][2] for c in g}
         self.masks = [g.spawn_tiles() for g in self.groups]
         self.centers = [m.positions()[0] for m in self.masks]
         self.altars = gm.altars().positions()
@@ -68,6 +70,8 @@ class Bot:
         self.home_distances = [min(dist(p, self.home_center) for p in m.positions()) for m in self.masks]
         self.home_groups = [dist(p,self.home_center) <= dist(p,self.enemy_center) for p in self.centers]
         self.crates = [any(c.is_gem_cluster() for c in g) for g in self.groups]
+        self.group_rewards = [g.gem_value()+.18*g.gold_value() for g in self.groups]
+        self.altar_groups = [any(dist(p,a)<=4 for a in self.altars) for p in self.centers]
         self.altar_fields = []
         self.altar_home = []
         for altar in self.altars:
@@ -154,7 +158,7 @@ class Bot:
         if not me.can_attack():
             return False
         mask = me.attack_tiles()
-        valid = [x for x in targets if x.is_visible() and x.health() > 0 and mask.is_set(x.position())]
+        valid = [x for x in targets if x.is_visible() and x.health() > 0 and mask.is_set(x.position()) and (not self.rows or self.boss_allowed(me,x))]
         if not valid:
             return False
         def value(x):
@@ -162,7 +166,8 @@ class Bot:
             score = 1000 if x.health() <= me.strength() else 0
             if isinstance(x, bc.Champion):
                 # Deny contested rewards before resuming neutral camp damage.
-                score += 1200 + min(x.gem_count(), 100)
+                contested=any(crate and dist(x.position(),p)<=3 for crate,p in zip(self.crates,self.centers))
+                score += (1200 if contested else 150) + min(x.gem_count(), 100)
                 if x.is_submitting_gems(): score += 200
                 if x.champion_name() in (C.WILLOW, C.CASSI): score += 60
             if self.kind == C.VARG:
@@ -181,6 +186,7 @@ class Bot:
     def cast(self, me, targets, moved=False, attacked=False):
         if not me.can_cast():
             return False
+        if self.rows: targets=[t for t in targets if self.boss_allowed(me,t)]
         options = []
         for ability in me.abilities():
             if not ability.is_ready():
@@ -266,7 +272,7 @@ class Bot:
         self.bank_target = min(ranked)[1]
         altar = self.altars[self.bank_target]
         # Clear a visible, manageable guard that covers the chosen tribute tile.
-        guards = [c for c in self.visible_camps() if c.strength()>0 and dist(c.position(),altar)<=c.attack_range()+1]
+        guards = [c for c in self.visible_camps() if c.strength()>0 and c.health()<c.max_health() and dist(c.position(),altar)<=c.attack_range()+1]
         if guards and not enemies and dist(me.position(),altar)<=5:
             damage = sum(c.strength() for c in guards)
             rounds = sum(c.health() for c in guards)/max(me.strength()*1.5,1)
@@ -302,13 +308,16 @@ class Bot:
             state=self.groups[self.target].state()
             if not isinstance(state,gm.CampGroupRespawning): return self.target
             self.sleep_until[self.target]=bc.round_number()+state.timer+1
+        if self.corners: return choose_economy_group(self,me)
         claims = read_claims()
+        strength,health=me.strength(),me.health()
+        jungle=bool(me.item_count()[I.JUNGLE_EMBLEM_OF_STRENGTH])
         candidates = []
         # Bound tactical work: prefilter geometrically before live queries.
         shortlist = sorted(range(len(self.groups)), key=lambda i: dist(me.position(),self.centers[i]))[:10]
         if self.target is not None and self.target not in shortlist: shortlist.append(self.target)
         for index in shortlist:
-            if bc.fuel_remaining() < 1500000 and candidates: break
+            if bc.fuel_remaining() < 1100000 and candidates: break
             self.check_budget()
             group = self.groups[index]
             if self.failed_until.get(index, 0) > bc.round_number():
@@ -336,38 +345,39 @@ class Bot:
                 partners=[a for a in partners if a.champion_name() in (C.VENDETTA,C.TAVI)]
             if boss and (not partners or me.health()<.65*me.max_health()): continue
             ready = isinstance(state, gm.CampGroupRewardAvailable)
-            damage = max(1, me.strength() * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
+            damage = max(1, strength * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
             clear = 0 if ready else hp / damage
             if boss:
                 damage += sum(a.strength()*1.3 for a in partners)
                 clear = 0 if ready else hp/damage
                 if incoming*clear*.55 > me.health()+sum(a.health() for a in partners): continue
-            value = (group.gem_value() + .18 * group.gold_value()) / (travel + clear + 7)
+            value = self.group_rewards[index] / (travel + clear + 7)
             if not self.corners:
                 if self.home_groups[index]: value *= 1.35
                 else: value *= .65
             if bc.round_number()<90 and self.crates[index] and not self.corners: value *= 1.8
-            if any(dist(position,a)<=4 for a in self.altars): value *= 1.15
+            if self.altar_groups[index]: value *= 1.15
             if self.rows:
                 if self.kind in (C.VARG,C.RYTH,C.WILLOW):
                     if incoming and self.home_groups[index]: value *= 2
                     elif self.crates[index]: value *= .65
-                elif self.kind in (C.VENDETTA,C.TAVI) and self.crates[index]: value *= 2
-            if me.item_count()[I.JUNGLE_EMBLEM_OF_STRENGTH]: incoming *= .7
+                elif self.kind in (C.VENDETTA,C.TAVI) and self.crates[index]:
+                    value *= 2
+            if jungle: incoming *= .7
             # Conservative long-clear estimate; later monsters die before the last.
             reserve = incoming * clear * .55
-            if not ready and reserve > me.health() * .75: value *= .15
+            if not ready and reserve > health * .75: value *= .15
             if boss: value *= .15
             if self.alert and dist(position, self.alert) <= 6: value *= .45
             if ready:
                 value *= 2
                 if index == self.target and self.masks[index].is_set(me.position()): value *= 20
             if index == self.target:
-                value *= 1.8
+                value *= 1.35 if self.corners else 1.8
             if self.kind == C.CASSI and incoming == 0: value *= 1.5
             if any(slot != self.slot and v == index + 1 and self.allies_by_slot[slot].is_alive()
                    for slot, v in enumerate(claims) if slot < len(self.allies_by_slot)):
-                value *= .8 if boss or (self.rows and self.kind in (C.VENDETTA,C.TAVI)) else .25
+                value *= .8 if boss else .25
             candidates.append((value, index))
         return max(candidates)[1] if candidates else None
 
@@ -415,11 +425,13 @@ class Bot:
         threats += [c for c in self.visible_camps() if c.strength() > 0
                     and dist(me.position(), c.position()) <= c.attack_range()]
         if threats and me.can_move():
+            self.check_budget()
+            threat_positions=[(t.position(),t.attack_range()) for t in threats]
             if self.escape_dash(me, threats): return
             candidates = self.blockers(me).reachable_tiles(me.position(), 1).positions()
             if candidates:
-                safe = max(candidates, key=lambda p: (min(dist(p, t.position()) - t.attack_range() for t in threats),
-                                                      -min(dist(p, s) for s in self.spawn.positions())))
+                safe = max(candidates, key=lambda p: (min(dist(p, position)-radius for position,radius in threat_positions),
+                                                      -self.home_field.get(p)))
                 self.check_budget()
                 if safe != me.position() and not self.blockers(me).is_set(safe):
                     me.move_absolute(safe)
@@ -435,7 +447,7 @@ class Bot:
         self.turns += 1
         self.shop(me)  # Also shop while dead and use Tavi's remote shop.
         # Spend scarce team memory on exact carried totals in the endgame.
-        if banking_mode() or bc.global_submitted_gems(T.ALLY)>=500:
+        if banking_mode() or bc.global_submitted_gems(T.ALLY)>=800 or (me.is_alive() and bc.global_submitted_gems(T.ALLY)+me.gem_count()>=900):
             publish_gems(self.slot,me.gem_count() if me.is_alive() else 0)
         if not me.is_alive():
             self.previous_health = None
@@ -546,6 +558,16 @@ class Bot:
         remaining = [c for c in group if c.is_visible() and c.health()>0]
         return bool(remaining) and all(c.is_visible() for c in group) and sum(c.health() for c in remaining) <= me.strength()*3 and me.health() > 4*sum(c.strength() for c in remaining)+100
 
+    def boss_allowed(self, me, target):
+        if not isinstance(target,bc.Camp) or int(target) not in self.boss_camps: return True
+        # Do not incidentally open a boss via fallback attack or defensive spell.
+        if self.target is None or not self.group_stats[self.target][2]: return False
+        friends=[a for a in self.allies() if a.health()>=.65*a.max_health() and dist(a.position(),target.spawn_position())<=7]
+        if len(friends)<2: return False
+        if self.rows:
+            return {C.VENDETTA,C.TAVI}.issubset({a.champion_name() for a in friends})
+        return True
+
     def engage(self, me, defend_only=False):
         """Defend home resources and focus isolated enemies with nearby allies."""
         enemies = self.enemies()
@@ -555,6 +577,7 @@ class Bot:
             if dist(me.position(),p)>7: continue
             if defend_only and dist(me.position(),p)>me.attack_range()+1: continue
             contest=any(crate and dist(p,center)<=3 for crate,center in zip(self.crates,self.centers))
+            if self.corners and not contest and not defend_only: continue
             home=dist(p,self.home_center)<=dist(p,self.enemy_center)
             friends=[a for a in self.allies() if dist(a.position(),p)<=6 and a.health()>=a.max_health()*.65]
             foes=[e for e in enemies if dist(e.position(),p)<=6]
@@ -601,7 +624,8 @@ class Bot:
         # Use a conservative walkable two-step path: never dash through walls.
         candidates = self.blockers(me).reachable_tiles(me.position(), 2).positions()
         if not candidates: return False
-        score = lambda p: min(dist(p,t.position())-t.attack_range() for t in threats)
+        snapshot=[(t.position(),t.attack_range()) for t in threats]
+        score = lambda p: min(dist(p,position)-radius for position,radius in snapshot)
         target = max(candidates, key=score)
         self.check_budget()
         return score(target) > score(me.position()) and ability.use(target)
