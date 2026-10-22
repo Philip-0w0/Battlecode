@@ -158,18 +158,21 @@ class Bot:
         return target.is_visible() and target.health() > 0
 
     def cast(self, me, targets, moved=False, attacked=False):
+        self.check_budget()
         if not me.can_cast():
             return False
         options = []
         for ability in me.abilities():
+            self.check_budget()
             if not ability.is_ready():
                 continue
             info = ability.info()
             if moved and info.exclusive_with_movement:
                 continue
             if ability.is_attack_reset():
+                attack_tiles=me.attack_tiles()
                 in_range = [t for t in targets if t.is_visible() and t.health() > 0
-                            and me.attack_tiles().is_set(t.position())]
+                            and attack_tiles.is_set(t.position())]
                 if attacked and not me.can_attack() and in_range:
                     options.append((me.strength() * (2 if self.kind == C.VARG else 1), ability, None))
             elif ability.is_shield():
@@ -220,6 +223,7 @@ class Bot:
     def combat(self, me, targets, moved=False):
         attacked = self.attack(me, targets)
         if not me.is_alive(): return
+        self.check_budget()
         self.cast(me, targets, moved, attacked)
         if not me.is_alive(): return
         self.attack(me, self.targets())  # A reset or spell may open a new target.

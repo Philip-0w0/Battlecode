@@ -1,5 +1,55 @@
 # Battlecode strategy implementation
 
+## Rows idle-camp borrowing — 22 October 2026
+
+Rows keeps its distinct primary camp assignments, but after round 40 a teammate may borrow another living champion's camp when that owner has explicitly released its shared claim, for example to bank or recover. Borrowed camps receive a 0.6 score multiplier so personal assignments remain preferred. Any camp actively claimed by a living teammate is excluded, including when its primary owner returns. A borrower may finish a capture already in progress if the owner resumes farming elsewhere, but does not retain an indefinite lease on a long fight. Dead owners' camps remain available as before.
+
+Only `rows_bot.py:choose_group` changes. Drafting, combat, gear, retreat, banking, all other maps and the eight-byte protocol remain unchanged. Idle owners who retain a claim are not detected by this change. The previous active bot is preserved as `before-camp-borrowing`. Results include one loss against an older opponent; this is not a universal performance guarantee.
+
+
+## Rows assignment policy — 22 October 2026
+
+This update supersedes the Rows portion of the annotation update below. The active entry point selects `rows_bot.py` and `rows_draft.py` on the recognised Rows layout. These preserve `annotation-baseline` drafting, fighting, shopping, retreat and banking. Only setup and camp selection change. The broader Rows tactical rewrite remains in `bot.py` but is not selected by `main.py` on Rows.
+
+Each champion deterministically receives a different primary home-side camp. Varg receives the nearest available grouped-monster camp first; other slots receive the nearest remaining home camps using static walking distances from spawn. Living teammates' assigned camps are excluded from each other's farming candidates. A dead owner's camp becomes available. Unassigned camps remain shared. Existing respawn observations and failed-route exclusions still apply. Enemy-side camps are discounted as fallbacks when a home route is unavailable. This is distinct ownership, not a coordinated attack formation or an order to wait indefinitely at a respawning camp.
+
+The standalone experiment is `rows-assignment-v1`. The pre-promotion active bot is preserved as `before-rows-assignment`. Other map policies are unchanged. Three offline assignment tests cover unique ownership, Varg's grouped-monster preference, ordering consistency and short/empty camp pools. Benchmark results and limitations are recorded at the top of `STRATEGY-RESULTS.md`.
+
+
+## Annotation update — 22 October 2026
+
+The active entry point is `bots/my-bot/src/main.py`. It selects the new tactical policy (`bot.py`) for the recognised Packs, Eight and Rows layouts. Other layouts use `economy_bot.py`, the preserved economy policy plus the recent-damage retreat safeguard. Layout detection uses dimensions and altar positions, not filenames. Unknown/edited layouts fall back to the economy policy. The complete pre-annotation bot is preserved as `annotation-baseline`.
+
+The sections below this update describe the earlier strategy version. Where they differ, this update describes the current behaviour.
+
+### Implemented from the replay notes
+
+- **Recent damage:** all maps compare consecutive start-of-turn health observations. If the net loss is at least remaining health, retreat is triggered. Death resets the sample. This observes net health change, so simultaneous healing can mask some incoming damage; it is not an engine damage-event total. Existing pressure-based retreat remains in place.
+- **Packs opening and home camps:** nearby gem clusters receive an early bonus. Home-side camps receive a preference, while enemy-side farming is discouraged. Rewards, travel, estimated clear time, risk and teammate claims still matter, so a distant crate is not an unconditional first destination.
+- **Route stability:** the tactical policy normally re-scores its destination every four rounds, while checking visible depletion each round. A champion that stays outside its target camp for eight attempts temporarily excludes that route. Capture itself requires several phases and is not treated as a stuck move.
+- **Contested crates:** enemies near gem clusters get priority over neutral monsters when in attack range. A health/Strength/Focus comparison decides whether to engage or broadcast a backup request. Nearby healthy allies can respond for up to three rounds. This is an approximate matchup estimate, not a proven champion-counter table.
+- **Local numbers advantage:** healthy nearby allies can focus an isolated opponent, especially on home territory. Pursuit is bounded by visibility and distance. A nearby favorable threat can be fought before tributing. Champions carrying a winning load prioritize delivery, and emergency retreat remains higher priority than fighting.
+- **Altar choice:** the tactical policy ranks reachable altars by actual static walking distance, nearby enemy risk and a small home-distance preference. It keeps its destination unless another is materially better. It finishes an already-damaged nearby guard only when the estimated clear is short and safe. It does not open every sleeping monster beside an altar.
+- **Finish a camp:** before an optional deposit, a champion may complete its current capture or finish a visible group requiring roughly three attacks with sufficient health. This does not delay delivery of a winning team load.
+- **Rows roles:** draft Varg, Tavi, Vendetta, then Ryth. Varg and Ryth prefer home-side monster farming; Vendetta and Tavi prefer gem clusters. These are assignment preferences, not fixed formation movement. Monolith groups require a healthy nearby pair and adequate estimated combat capacity; on Rows the pair must include Vendetta and Tavi. Fallback attacks/spells also check that a boss group was intentionally selected. Incidental area damage can still affect nearby units.
+- **Winning load:** in the tactical policy, submitted gems plus known team-carried gems reaching 1,000 makes carriers deliver immediately. Unseen teammates' live inventories cannot be queried. Near the endgame, shared memory switches to six 10-bit carried-gem reports. The switch starts at 800 submitted gems, or when one champion's submitted-plus-carried total reaches 900. Visible allies override cached reports; dead allies count as zero. Before the switch only visible carried gems can be included. Reports can lag by an owner's turn.
+
+### Communication and mechanical limits
+
+The eight-byte early-game protocol retains camp claims and the enemy alert, now using the danger bit for backup requests. Urgent alerts are protected from routine overwrites briefly. The endgame protocol uses bit 39 as a mode marker and packs six gem counts around it. The switch clears old claims and reports; it is permanent for the match. Camp claims and backup messages stop in this mode, deliberately trading farming coordination for delivery information. Counts saturate at 1,023, sufficient for the 1,000-gem win check.
+
+Tavi cannot heal: his kit is attack reset plus a damage/stun spell. Willow provides healing in compositions that include her. Tavi responds as combat support. The bot already retains the full static map, including terrain, altars, camps and path fields; memory does not reveal unseen current enemies. Local camp respawn observations persist across turns.
+
+The broader tactical rewrite regressed Corners in repeated tests. It is not enabled there. Corners retains its earlier camp-selection and banking policy with the new recent-damage retreat check. This is an intentional limit of this release, not a claim that every requested Corners behaviour is solved.
+
+### Interpreting the supplied analytics
+
+Final totals match the previous test records: `match-analytics.csv` is Collision A (609 rounds); `(1)` is Corners B (584); `(2)` is Rows B (863); `(3)` is Eight B (687); `(4)` is Packs B (663). This is a match by totals and duration; the CSVs themselves have no map names or champion positions. The original Corners B game won 1,016–188. Rows B peaked at 990 submitted-plus-carried gems, Eight B at 938. Packs B first had a winning total on round 653 and won on 663.
+
+These CSVs cannot establish what Vendetta saw on rounds 12–18, identify the champion meant by “vali,” or explain an exact movement. The changes address the structural weaknesses identified in the notes rather than inventing per-champion evidence. Crates provide gems but no gold; camps near an altar are normally neutral until attacked, so blanket crate-first or monster-first orders can reduce performance.
+
+Run `python scripts/test_tactics.py` and `python scripts/test_coordination.py` for offline checks. Full engine comparisons and release limitations are recorded in `STRATEGY-RESULTS.md`. The legacy and tactical policies are maintained separately so unvalidated tactical changes do not silently alter every map.
+
 The active bot lives in `bots/my-bot/src`. This version implements the conditional strategies discussed in the Collision brief, strategy notes and draft review. It is a rule-based bot, not a trained model. The previous active source is preserved in `bots/pre-strategy-v2/src`.
 
 ## Draft and roles
