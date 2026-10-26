@@ -1,5 +1,24 @@
 # Strategy integration results — 18 October 2026
 
+## Endgame tempo experiments — 24 October 2026
+
+Three isolated Rows changes were tested against the current camp-borrowing `my-bot`, once on each starting side. None demonstrated a clear direct improvement, so **none was promoted**. The active bot remains the tested camp-borrowing version from 22 October.
+
+| Experiment | Wins | Candidate side A | Candidate side B |
+| --- | --- | --- | --- |
+| Wait for 300 gold after completing both farming emblems | 0/2 | 990–1,056, round 563 | 924–1,056, round 559 |
+| Skip optional shopping after 800 submitted gems | 1/2 | 1,056–990, round 562 | 924–1,056, round 559 |
+| Near victory, score camps by needed gems and estimated collection/delivery time | 1/2 | 1,056–990, round 559 | 990–1,056, round 559 |
+
+All six matches had zero candidate deaths, caught bot errors, engine faults and budget yields. Drafting, combat and health-based retreat were unchanged. These results are deterministic local comparisons against one opponent, not statistically independent tournament trials.
+
+Evidence: `replays/shopping-tempo-v1-vs-current`, `replays/endgame-tempo-v1-vs-current`, and `replays/finish-route-v1-vs-current`. The corresponding bots are retained as `shopping-tempo-v1`, `endgame-tempo-v1` and `finish-route-v1` for inspection. They are experiments, not recommended active replacements.
+
+The earlier loss to `pre-strategy-v2` at 990 submitted gems also had two living champions each carrying 66 gems at match end (`replays/camp-borrowing-capture-vs-older/rows-1.json`). The existing bot already prioritizes banking when its own carried gems cover the remaining target. The problem therefore cannot be diagnosed as a missing basic win-threshold check: obtaining the final bag sooner, routing and channel completion timing must be distinguished using per-turn replay evidence. The experiments above do not establish which of those caused the loss. Exact idle time and channel interruptions were not measured here.
+
+No active source, map, submission, commit or remote repository was changed by this experiment cycle.
+
+
 ## Idle-camp borrowing — 22 October 2026
 
 The final capture-preserving borrowing policy won **5/6** Rows matches against three related versions, each tested from both sides. All six had **zero caught errors, zero engine faults and zero budget yields**.
