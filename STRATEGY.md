@@ -131,3 +131,18 @@ The benchmark saves JSON statistics, stdout tracebacks in replays, caught-error 
 ## Deliberately deferred
 
 Enemy baiting into camps, coordinated ambushes, aggressive pursuit, global optimal reward allocation, precise control of Cassi–Issac separation, dynamic reinforcement squads, and general safe-tribute-window prediction remain future work. No unconditional consumable purchases, universal champion-counter table, unsupported early Monolith rush or fixed ten-percent retreat rule was added. Documents supplied by the user remain unchanged. No bot has been submitted or published.
+
+
+## SDK 4 and current content update - 27 October 2026
+
+The active bot is `bots/my-bot`, with the official CLI and SDK 4.0.0 and the current 70-map manifest. Seventeen legacy map filenames remain for reproducing old results. The current engine is 2.0.0; earlier engine 1.0.3 results are not directly comparable.
+
+`map_profile.py` inspects rewards and camp composition, including Golems, to classify new maps without relying on filenames. Existing tactical map dispatch and established draft priorities remain. The draft fallback now covers the full 12-champion roster, including Heart of Ruin. Heart-heavy automatic drafts tested poorly and were not promoted.
+
+`current_content.py` supplies a Heart of Ruin controller: Focus-oriented equipment, shielding under pressure, bounded offensive dash candidates, and no offensive dash during recovery or banking. It avoids pulling unselected camp groups and rejects dangerous landings. Enemy Heart dash damage uses the typed ability API, including its missing-health passive; a potentially lethal burst triggers retreat using an owned position snapshot and a movement-adjusted threat envelope. These changes extend the existing economy and tactical controllers; Rows retains its specialist controller.
+
+All three controllers create fresh attack masks with budget checks around engine calls. This addresses observed SDK 4 attack-mask metadata failures. Recovery fields initialize before interruptible parent setup. Error logs now identify the source line. The new benchmark requests JSON explicitly and records actual gem losses, camp/PvP deaths, hard fuel exhaustion, picks, faults and errors.
+
+The optional `bots/heart-of-ruin-sdk4` variant deliberately drafts Heart on zero-gold maps. Its 0/4 full-match screen makes it experimental, not the recommended default. Other rejected experiments included early Heart drafts, lazy routing and ranged Monolith siege. The current Monolith has range 5, so range-4 siege abilities do not safely outrange it. Boss-only and heavily guarded objectives remain unresolved strategic weaknesses.
+
+Source backup: `bots/before-sdk4-1027`. Runtime/config/map backup: `work/before-sdk4-runtime-1027`. Full experiment logs remain under `work/sdk4-evaluation/replays`; selected evidence is in `replays/sdk4-content-update`.

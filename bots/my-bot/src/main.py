@@ -8,10 +8,11 @@ from economy_bot import Bot as EconomyBot, TurnBudget as EconomyTurnBudget
 from rows_bot import Bot as RowsBot, TurnBudget as RowsTurnBudget
 import rows_draft
 from reliability import Reliable
+from current_content import CurrentContent
 
 
-class TacticalBot(Reliable, Bot): pass
-class SafeEconomyBot(Reliable, EconomyBot): pass
+class TacticalBot(CurrentContent, Reliable, Bot): pass
+class SafeEconomyBot(CurrentContent, Reliable, EconomyBot): pass
 from cambc import game_map as gm
 
 
@@ -34,11 +35,15 @@ def main():
             if cambc.is_draft():
                 draft_policy.play()
             else:
+                bot.action_round = cambc.round_number()
                 bot.play_turn()
         except (TurnBudget,EconomyTurnBudget,RowsTurnBudget):
             pass  # Expected bounded yield; do not spend fuel on release logging.
         except Exception as error:
-            print(f"bot error: {error}", flush=True)
+            tb=error.__traceback__
+            while tb is not None and tb.tb_next is not None: tb=tb.tb_next
+            where=f" [{tb.tb_frame.f_code.co_filename}:{tb.tb_lineno}]" if tb is not None else ""
+            print(f"bot error: {error}{where}", flush=True)
             if DEBUG: traceback.print_exc(file=sys.stdout)
         cambc.end_turn()
 

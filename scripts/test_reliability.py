@@ -108,7 +108,7 @@ class SafetyChecks(unittest.TestCase):
         attacked=[]
         me=types.SimpleNamespace(position=lambda:altar, can_attack=lambda:True,
                                  attack_tiles=lambda:mask,attack=attacked.append)
-        b=module.Bot();b.collision=False;b.altars=[altar];b.check_budget=lambda:None
+        b=module.Bot();b.collision=False;b.altars=[altar];b.check_budget=lambda:None;b.attack_mask=lambda unit:mask
         self.assertTrue(b.bank(me))
         self.assertEqual(teams,[1])
         self.assertEqual(attacked,[enemy])

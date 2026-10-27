@@ -12,12 +12,12 @@ def dist(a,b): return a.chebyshev_distance(b)
 
 class Reliable:
     def setup(self,me):
-        super().setup(me)
         self.progress = Progress()
         self.route_progress = Progress()
         self.last_live_target = None
         self.detour_until = -1
         self.detour_tiles = []
+        super().setup(me)
 
     def check_budget(self):
         super().check_budget()

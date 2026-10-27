@@ -156,10 +156,19 @@ class Bot:
         return ([x for x in bc.champions(T.ENEMY) if x.is_alive() and x.is_visible()]
                 + self.visible_camps())
 
+    def attack_mask(self,me):
+        self.check_budget()
+        p=me.position()
+        radius=me.attack_range()
+        self.check_budget()
+        result=bc.Bitboard()
+        result.draw_chebyshev(bc.Vec2(p.x,p.y),radius)
+        return result
+
     def attack(self, me, targets):
         if not me.can_attack():
             return False
-        mask = me.attack_tiles()
+        mask = self.attack_mask(me)
         valid = [x for x in targets if x.is_visible() and x.health() > 0 and mask.is_set(x.position()) and (not self.rows or self.boss_allowed(me,x))]
         if not valid:
             return False
@@ -198,7 +207,7 @@ class Bot:
                 continue
             if ability.is_attack_reset():
                 in_range = [t for t in targets if t.is_visible() and t.health() > 0
-                            and me.attack_tiles().is_set(t.position())]
+                            and self.attack_mask(me).is_set(t.position())]
                 if attacked and not me.can_attack() and in_range:
                     options.append((me.strength() * (2 if self.kind == C.VARG else 1), ability, None))
             elif ability.is_shield():
@@ -291,7 +300,7 @@ class Bot:
                 locks = bc.vision.altar_lock_tiles(T.ENEMY)
                 if locks.is_set(altar):
                     self.check_budget()
-                    if me.can_attack() and me.attack_tiles().is_set(altar):
+                    if me.can_attack() and self.attack_mask(me).is_set(altar):
                         enemy_lock = next((lock for lock in bc.vision.altar_locks(T.ENEMY)
                                            if lock.position() == altar), None)
                         self.check_budget()

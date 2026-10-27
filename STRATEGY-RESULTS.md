@@ -131,3 +131,20 @@ The full suite lost both sides of Eight and Rows, and one side each of Elkring, 
 These deterministic comparisons against one older bot measure regression performance, not tournament win probability. Further work should focus on delivery and navigation failures on the weak maps, then test multiple opponent styles. Ambush squads, enemy baiting, offensive dashes and a general teleport route planner remain unimplemented; see `STRATEGY.md` for the exact supported scope.
 
 The previous nine-map snapshot is in `map-snapshots/before-strategy-update`. No bot was submitted and no Git changes were committed or pushed.
+
+
+## Current content validation - SDK 4, 27 October 2026
+
+The installed source passes all 35 local unit tests. An 80-round release-mode check of the installed bot on current Packs completed with zero caught bot errors. These checks establish compatibility, not competitive strength.
+
+The SDK 4 production baseline, before the final conditional enemy-Heart threat adjustment, won 4/6 full matches against the preserved pre-update bot: Packs 2/2, Rows 1/2, Lost World 1/2. Both Rows games reached the 2,000-round limit. There were zero caught errors and zero engine faults. Rows had zero hard fuel exhaustion; other maps still had some. The final Heart-defence source split 1/2 against the Heart experimental reference on Lost World, with zero caught errors/faults and 11/31 hard fuel events. This is a separate opponent and source check, not a combined win-rate estimate.
+
+An earlier integration candidate passed all 70 maps for 30 rounds each with zero caught errors. That candidate differs from the installed source. A final source preflight is recorded separately; short map checks cover loading, draft and initialization, not complete-game strategy. Runner timeouts are tracked as failures and retried, never counted as passes.
+
+The optional Heart-heavy gem-map variant lost 0-4 against the preserved bot, so it remains experimental. Full early experiment logs contain failed candidates and are not asserted error-free. Rejected drafts and routing changes have not been promoted to the active bot.
+
+Selected CSV evidence, current map manifest and installed source hashes: `replays/sdk4-content-update`. Full evidence: `work/sdk4-evaluation/replays/production-sdk4-validation`, `production-current-heart-defence`, `content-release-gem-maps` and `content-v5-all-maps`. No competition submission or Git commit/push was performed.
+
+The final setup-order safeguard also passes a focused 12-round release-mode check on current Packs, Quadrants, Ribs, Rows and adgato-gemcombat1: 5/5, zero caught bot errors. The earlier Quadrants runner timeout passed on a separate installed-source retry. These are bounded compatibility checks.
+
+Completed preflight: all 70 current maps exercised with the production candidate preceding the final setup-order safeguard. First pass: 69 passed, 1 runner timeout (Quadrants), zero caught bot errors. Quadrants passed on installed-source retry. After the setup-order safeguard, all five focused installed-source checks passed. This is compatibility evidence, not 70 full-game wins. Evidence: `replays/sdk4-content-update/pre-setup-order-70-map-preflight.json`, `sdk4-installed-retry.json` and `sdk4-installed-final.json`.
