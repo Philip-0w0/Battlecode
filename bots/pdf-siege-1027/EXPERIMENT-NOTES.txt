@@ -1,0 +1,1 @@
+Not active. Reused existing boss controller for Contest and Stampede. Completed Contest results split 1/2; Stampede was not evaluated.

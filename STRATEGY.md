@@ -1,5 +1,28 @@
 # Battlecode strategy implementation
 
+## CAMSTAT-driven passive correction - 27 October 2026
+
+The active bot now recognizes Jungle Emblems of Strength, Focus and Health when estimating neutral-camp damage. The passive belongs to the family, so counting only Strength understated survivability for Focus/Health builds. Each camp-selection call now reads inventory once and reuses that snapshot. This applies to bot.py, economy_bot.py, rows_bot.py and camp_policy.py; equipment.py contains the shared predicate. Drafts, item purchases, banking thresholds and movement policy were not changed in this iteration. All fifteen installed Python modules match the tested camstat-passives-v1 snapshot exactly.
+
+The data review used official cambc 4.0.0 summary decoding on 128 explicitly listed files plus seven additional matches involving team 48016704-2f30-4bb9-8c37-9b6a766e53af. The 135 distinct summaries cover 216 teams, all on engine 1.0.3. The full download directory contains 24,793 files; this review does not claim to cover all of them. Your eight historical games were all losses, with 219 deaths (195 PvP, 24 camps), 4,200 gems acquired, 2,572 deposited, 1,461 lost on death, and 167 still carried. Winning other-team observations deposited 88.0% of acquired gems versus 61.2% for your sample. These historical summaries do not identify today's bot build, and the cohort is not a random ladder sample. Some matches overlap the earlier PDF evidence.
+
+Other-team builds suggested testing Durability Health instead of Bruiser Health; it won only 3/8 against the frozen pre-change bot and was rejected. A separate 120-round bag-age banking trigger split 4/8 and was not promoted. Tavi Strength and Focus builds both occur among winners, so the data does not justify a universal Focus conversion. PvP survival and safe gem delivery remain the main unresolved historical weaknesses; the passive correction does not by itself establish reduced PvP deaths.
+
+The prior active source is frozen in bots/before-camstat-1027. The reusable scripts/analyze_camstats.py consumes official decoded JSON, identifies teams from original ranked filenames, reconciles deposits/deaths/gem loss, and writes reproducible aggregate evidence. Inputs and analysis are indexed in replays/camstat-analysis. The CLI 4.0.0 download is isolated under work/camstat-review; tools/cambc.exe and SDK configuration were not replaced.
+
+## PDF-driven reliability update - 27 October 2026
+
+All three controllers now select enemy altar locks explicitly, verify attack range, and recheck readiness and occupancy before each movement attempt. Release logging prints concise errors; full tracebacks require main.DEBUG, and expected budget exits are quiet.
+
+The economy and tactical controllers use reliability.py to snapshot retreat/dash threats into positions and ranges, reject guarded decisions after death or round rollover, and detect sustained unproductive goals. Tracking uses resources, target health, best distance and recent positions. Sixty unproductive farm turns release a failed goal for thirty rounds, banking carried gems first. Sixty unproductive movement turns trigger a six-round detour around recent loop tiles. Channels and observation gaps reset history. Goal diagnostics require reliability.DEBUG.
+
+Rows retains its original controller and camp borrowing policy, with the direct lock and movement checks only. Its shared-wrapper experiment lost both games against the older opponent, so that integration was removed. The original bot is preserved in bots/before-pdf-1027.
+
+Broad objective/danger changes, Tavi Power Focus purchases and the existing ranged-boss controller were tested separately and not promoted because results regressed or split by side. Drafts and item builds remain unchanged. Boss-only scoring, high-Focus enemy spell danger, recall survival and reproduction of the report's original long-stall layouts remain unresolved. This is a targeted reliability update, not a demonstrated general strength increase.
+
+The 21 offline tests include simultaneous friendly/enemy locks, short cycles, productive combat, goal churn, observation gaps, dead actors, retreat snapshots and sixty-turn reassignment. Benchmark CSVs additionally record acquired/carried/lost gems, gold spent and opponent deaths. Printed budget-yield counts are not hard exhaustion measurements; release logging suppresses these messages. First-gem timing and camp/PvP death attribution were not instrumented.
+
+
 ## Rows idle-camp borrowing — 22 October 2026
 
 Rows keeps its distinct primary camp assignments, but after round 40 a teammate may borrow another living champion's camp when that owner has explicitly released its shared claim, for example to bank or recover. Borrowed camps receive a 0.6 score multiplier so personal assignments remain preferred. Any camp actively claimed by a living teammate is excluded, including when its primary owner returns. A borrower may finish a capture already in progress if the owner resumes farming elsewhere, but does not retain an indefinite lease on a long fight. Dead owners' camps remain available as before.

@@ -1,0 +1,1 @@
+Not active. Isolated 120-round carried-gem banking trigger. Screen: 4/8 wins, zero caught errors/faults; not promoted.

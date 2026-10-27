@@ -3,6 +3,7 @@
 Only public SDK observations are used. Bytes 0..4 hold six packed camp claims; bytes 5..7 hold an expiring enemy alert.
 """
 import cambc as bc
+from equipment import has_jungle
 from rows_coordination import read_claims, write_claim, report, read_report
 from cambc import game_map as gm
 from assignments import assign_home_camps
@@ -98,7 +99,7 @@ class Bot:
         if step is None:
             return False
         self.check_budget()
-        if me.move(step):
+        if not self.blockers(me).is_set(me.position() + step) and me.can_move() and me.move(step):
             return True
         # A previously hidden blocker is now visible. Retry with a fresh mask.
         blocked = self.blockers(me)
@@ -106,7 +107,8 @@ class Bot:
         field.compute_to(blocked, goals, disk(me.position(), 0), bc.Bitboard())
         step = field.next_move_from(me.position())
         self.check_budget()
-        return step is not None and me.move(step)
+        return (step is not None and me.can_move()
+                and not self.blockers(me).is_set(me.position() + step) and me.move(step))
 
     def shop(self, me):
         if me.gold_count() < 30:
@@ -244,7 +246,11 @@ class Bot:
                 locks = bc.vision.altar_lock_tiles(T.ENEMY)
                 if locks.is_set(altar):
                     self.check_budget()
-                    if me.can_attack(): me.attack(bc.vision.altar_lock_at(altar))
+                    if me.can_attack() and me.attack_tiles().is_set(altar):
+                        enemy_lock = next((lock for lock in bc.vision.altar_locks(T.ENEMY)
+                                           if lock.position() == altar), None)
+                        self.check_budget()
+                        if enemy_lock is not None: me.attack(enemy_lock)
                     return True
                 lock = me.consumables()[int(bc.ConsumableType.ALTAR_LOCK)]
                 if lock.count() and self.enemies() and not bc.vision.altar_lock_tiles().is_set(altar):
@@ -259,6 +265,7 @@ class Bot:
     def choose_group(self, me):
         visible = bc.vision.visible_tiles()
         claims = read_claims()
+        jungle = has_jungle(me.item_count())
         candidates = []
         # Bound tactical work: prefilter geometrically before live queries.
         shortlist = sorted(range(len(self.groups)), key=lambda i: dist(me.position(),self.centers[i]))[:10]
@@ -308,7 +315,7 @@ class Bot:
             if borrowed: value *= .6
             if self.rows_home and index not in self.rows_home:
                 value *= .25  # Distant fallback only while the home route is unavailable.
-            if me.item_count()[I.JUNGLE_EMBLEM_OF_STRENGTH]: incoming *= .7
+            if jungle: incoming *= .7
             # Conservative long-clear estimate; later monsters die before the last.
             reserve = incoming * clear * .55
             if not ready and reserve > me.health() * .75: value *= .15

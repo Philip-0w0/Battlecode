@@ -50,6 +50,11 @@ def main():
                        opponent_gems=stats['teams'][1-side]['submittedGems'],
                        deaths=sum(c['deaths'] for c in allies),
                        gold=sum(c['earnedGold'] for c in allies),
+                       collected_gems=sum(c['collectedGems'] for c in allies),
+                       carried_gems=sum(c['gems'] for c in allies),
+                       lost_gems=max(0,sum(c['collectedGems']-c['submittedGems']-c['gems'] for c in allies)),
+                       spent_gold=sum(c['spentGold'] for c in allies),
+                       opponent_deaths=sum(c['deaths'] for c in stats['champions'] if c['team'] != side),
                        faults=stats['botFaults'][side], errors=sum(errors.values()), guarded_resets=stdout.count(b'guarded reset:'), budget_yields=stdout.count(b'budget yield'))
             rows.append(row)
             prefix.with_suffix('.errors.json').write_text(json.dumps(errors, indent=2), encoding='utf8')

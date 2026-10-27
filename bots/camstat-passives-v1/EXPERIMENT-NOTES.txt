@@ -1,0 +1,1 @@
+Promoted to my-bot on 27 October 2026 after 10/14 validation wins against two opponents. All 15 installed Python modules match this tested candidate byte for byte. Scope: stat-independent Jungle passive recognition and one inventory snapshot per camp-selection call. This is not a universal win-rate claim.

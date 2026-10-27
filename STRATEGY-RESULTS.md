@@ -1,5 +1,29 @@
 # Strategy integration results — 18 October 2026
 
+## CAMSTAT analysis and promotion - 27 October 2026
+
+The installed Jungle-passive correction won **10/14 completed matches**, with **zero caught errors and zero engine faults**. Against before-camstat-1027 it won 6/10: Eight 2/2, Packs 1/2, Collision 1/2, Monolith 1/2, Rows 1/2. Against pre-strategy-v2 it won 4/4: Collision 2/2 and Eight 2/2. These are deterministic local comparisons on five maps against two related opponents. They do not establish a ladder win rate, a universal improvement, or reduced PvP deaths. Packs and Collision still show substantial side-dependent weaknesses.
+
+The installed fifteen-module source matches camstat-passives-v1 byte for byte. All 24 offline tests passed, including new tests for all three Jungle stat variants, absence of completed emblems and non-stacking family detection. Source syntax and Git whitespace checks passed. Final indexed evidence and source hashes are in replays/camstat-final-validation. The final installed-source 80-round Collision smoke check is separate from full-match results.
+
+The four result folders are camstat-passives-screen (3/4), camstat-passives-collision (1/2), camstat-passives-regression (2/4), and camstat-passives-vs-older (4/4). Failed candidates are retained separately: camstat-durability-v1 won 3/8; camstat-delivery-v1 won 4/8. Both completed without caught errors or faults, but neither was promoted. The pre-iteration bot is preserved as before-camstat-1027.
+
+Historical analysis decoded 135 distinct CAMSTAT files using the official 4.0.0 CLI, validated gem-loss conservation, deposit totals and death attribution for every team observation, and identified eight matches involving the user's UUID. See the dated STRATEGY.md section for cohort sizes, findings and inference limits; replays/camstat-analysis/analysis.json and input-manifest.json retain the calculations and input hashes. No historical result is attributed to today's modified bot, and repeated evidence from the earlier PDF is not treated as an independent new trial.
+
+No competition upload, active tournament submission, Git commit or push was performed.
+
+## PDF-driven reliability release - 27 October 2026
+
+Final policy validation: **6 wins in 10 completed matches**, with **zero caught bot errors and zero engine faults**. Both starting sides were tested on Packs, Rows and Monolith against the preserved pre-change bot (3/6), and on Packs and Rows against pre-strategy-v2 (3/4). Rows won both older-opponent games after removing the shared-wrapper experiment; the final Rows controller retains its original policy plus direct lock/movement correctness fixes. Rows and Monolith final games lost no carried gems; two Packs games against the preserved bot each lost 48 gems. These are deterministic comparisons against two related opponents, not a tournament win-rate estimate or proof of a general improvement.
+
+The 21 offline tests passed. Source syntax/archive-content validation and Git whitespace checks passed. Final evidence is indexed in replays/pdf-final-validation/results.csv and summary.json. Those files select the final policy's games from pdf-release-core, pdf-release-monolith, pdf-release-vs-older, pdf-rows-preserved and pdf-rows-preserved-vs-older. Earlier shared-wrapper Rows games are excluded because that integration was removed; the non-Rows dispatch and source did not change during the Rows retest.
+
+The preserved original is bots/before-pdf-1027. All pdf-* bots are experimental snapshots, not the active bot. The objective/danger rewrite lost both completed Contest games; the intermediate short-stall/retreat version lost both Contest and both Monolith games; a further retreat variant lost its completed Packs A game. Remaining tests of these failed versions were cancelled. Tavi Power Focus split 2/4 against an intermediate version. The existing siege controller split 1/2 on Contest and was not evaluated on Stampede. None of these changes was promoted.
+
+This release fixes explicit enemy-lock targeting and immediate movement revalidation in all controllers. Economy/tactical policies also receive conservative progress fallback, primitive retreat snapshots and guarded round/death checks; full tracebacks are disabled by default. Broader spell danger, team boss coordination and the exact PDF replay layouts remain unresolved. No original replay archives were available here for reproducing the reported 540-turn spawn stall or 732-move loop. Unit tests establish detection and fallback behavior, not elimination of those original incidents. Budget-yield stdout is suppressed in release mode and does not establish zero hard fuel exhaustion. First-gem timing and camp/PvP death attribution remain unmeasured.
+
+No competition submission, commit or push was performed. A source-only ZIP was packaged separately for the user.
+
 ## Endgame tempo experiments — 24 October 2026
 
 Three isolated Rows changes were tested against the current camp-borrowing `my-bot`, once on each starting side. None demonstrated a clear direct improvement, so **none was promoted**. The active bot remains the tested camp-borrowing version from 22 October.

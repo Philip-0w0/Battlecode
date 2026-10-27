@@ -4,3 +4,7 @@ matches/
 replays/
 bots/*/build/
 bots/*/target/
+
+/work/
+
+__pycache__/

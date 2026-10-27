@@ -7,7 +7,15 @@ from bot import Bot, TurnBudget
 from economy_bot import Bot as EconomyBot, TurnBudget as EconomyTurnBudget
 from rows_bot import Bot as RowsBot, TurnBudget as RowsTurnBudget
 import rows_draft
+from reliability import Reliable
+
+
+class TacticalBot(Reliable, Bot): pass
+class SafeEconomyBot(Reliable, EconomyBot): pass
 from cambc import game_map as gm
+
+
+DEBUG = False
 
 
 def main():
@@ -19,7 +27,7 @@ def main():
         (41,30,frozenset({(20,15)})),
     }
     is_rows=signature==(50,50,frozenset({(15,16),(34,33)}))
-    bot = RowsBot() if is_rows else (Bot() if signature in tactical_maps else EconomyBot())
+    bot = RowsBot() if is_rows else (TacticalBot() if signature in tactical_maps else SafeEconomyBot())
     draft_policy=rows_draft if is_rows else draft
     while True:
         try:
@@ -28,10 +36,10 @@ def main():
             else:
                 bot.play_turn()
         except (TurnBudget,EconomyTurnBudget,RowsTurnBudget):
-            print("budget yield", flush=True)
+            pass  # Expected bounded yield; do not spend fuel on release logging.
         except Exception as error:
             print(f"bot error: {error}", flush=True)
-            traceback.print_exc(file=sys.stdout)
+            if DEBUG: traceback.print_exc(file=sys.stdout)
         cambc.end_turn()
 
 

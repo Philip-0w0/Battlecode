@@ -1,5 +1,6 @@
 """Preserved economy scoring for Corners, where broad tactical scoring regressed."""
 import cambc as bc
+from equipment import has_jungle
 from cambc import game_map as gm
 from coordination import read_claims
 I,C=bc.ItemType,bc.ChampionType
@@ -8,6 +9,7 @@ def dist(a,b): return a.chebyshev_distance(b)
 def choose_economy_group(self, me):
     visible = bc.vision.visible_tiles()
     claims = read_claims()
+    jungle = has_jungle(me.item_count())
     candidates = []
     # Bound tactical work: prefilter geometrically before live queries.
     shortlist = sorted(range(len(self.groups)), key=lambda i: dist(me.position(),self.centers[i]))[:10]
@@ -40,7 +42,7 @@ def choose_economy_group(self, me):
         damage = max(1, me.strength() * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
         clear = 0 if ready else hp / damage
         value = (group.gem_value() + .18 * group.gold_value()) / (travel + clear + 7)
-        if me.item_count()[I.JUNGLE_EMBLEM_OF_STRENGTH]: incoming *= .7
+        if jungle: incoming *= .7
         # Conservative long-clear estimate; later monsters die before the last.
         reserve = incoming * clear * .55
         if not ready and reserve > me.health() * .75: value *= .15
