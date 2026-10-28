@@ -1,5 +1,25 @@
 # Strategy integration results — 18 October 2026
 
+## Road of Riches recall and full-pool review — 28 October 2026
+
+The installed change is limited to the recognised Road of Riches layout (40×40, altars at (19,17)/(20,22)). Recovering champions may recall near dormant monsters; awake monsters and visible enemy champions still trigger escape. `road_reliability.py` subclasses the existing reliability controller, and `main.py` selects it only for this layout. It does not change camp selection, buying, draft order or the separate Rows controller.
+
+The integrated candidate won both Road games against the frozen current bot and all four cross-checks against `before-camstat-1027` and `pre-strategy-v2`. It split 1/2 against `allmaps-baseline-1025`, for **7/8 Road games across four local opponents**, with zero caught errors/faults in all eight. The remaining loss scored 888–1,016. These are a small deterministic comparison, not a tournament win-rate estimate.
+
+All **70 downloaded official layouts** were tested from both sides in release mode. Against the old `allmaps-baseline-1025` source, the frozen current bot won **40/140** (18 reaching the target) and the integrated candidate won **42/140** (20 reaching the target). Directly against the frozen current bot, the candidate won **73/140** (37 reaching the target). These totals include round-limit decisions and side effects of execution timing; they are not evidence that every map improved.
+
+The full suites retain unresolved defects: frozen current / release-vs-old / release-vs-current caught errors are **6 / 18 / 9**; engine faults are **0 / 0 / 0**; hard fuel-exhaustion events are **8765 / 7618 / 8844**. The release's Road games are error-free, but the full-pool suite is not. Suppressed budget-yield logging must not be confused with zero hard fuel exhaustion.
+
+The frozen current suite recorded 1,075 deaths, of which 797 were attributed to camps and 278 to champions, and 7,038 carried gems lost. Vault, Yellow Brick Road, Stampede and Tangle expose computation hotspots. Contest/Stampede still fail to collect gems in this cohort; Guardians collects gems but cannot deliver them. These remain development priorities. The five uploaded historical Team A matches are losses on Lost World (28–1,007, 23 deaths), Gold Rush (369–1,003, 20), Road of Riches (0–1,007, 6), Boss Battle (0–1,027, 11) and Rows (471–1,031, 11). Their ZIP Team B logs have different match IDs and are not treated as logs of these five Team A matches.
+
+Universal sleeping-camp filtering won 7/16 direct checks and lost both Packs games, so it was restricted to Road. Moving-camp lookup for all champions and the older Heart draft swaps were not promoted. Existing Heart of Ruin support from the newer 27 October source is retained. The older 17-map candidate from this chat was not installed over that newer source.
+
+All **53 offline tests** passed, including 12 recall and actual entry-point routing checks. The installed source then won a two-game Road check through the new benchmark command, with no caught errors/faults; these are integration repeats, not independent strategy samples. Source syntax and Git whitespace checks passed.
+
+The active folder already held all 70 layouts, but `.cambc/map-pool.json` still listed 17 legacy maps. All 70 hashes were checked and the manifest corrected, with a local backup of the old metadata. The tracked `benchmarks/published-pool-2026-10-28.json` records the tested snapshot. `scripts/benchmark_pool.py` runs both sides, checks hashes and complete coverage, and preserves previous result folders. The current SDK remains 4.0.0.
+
+Evidence: `benchmarks/road-recall-2026-10-28.json` includes source hashes, all 420 full-suite results and the four cross-checks. Raw replays remain in the local project mirror under `match-review-1026/current-workspace`. Historical analysis and current-suite detail are copied to `replays/map-review-2026-10-28`. The prior active bot is preserved locally as `before-road-recall-1028`; the tested candidate is `road-recall-1028`. No competition submission was made.
+
 ## CAMSTAT analysis and promotion - 27 October 2026
 
 The installed Jungle-passive correction won **10/14 completed matches**, with **zero caught errors and zero engine faults**. Against before-camstat-1027 it won 6/10: Eight 2/2, Packs 1/2, Collision 1/2, Monolith 1/2, Rows 1/2. Against pre-strategy-v2 it won 4/4: Collision 2/2 and Eight 2/2. These are deterministic local comparisons on five maps against two related opponents. They do not establish a ladder win rate, a universal improvement, or reduced PvP deaths. Packs and Collision still show substantial side-dependent weaknesses.

@@ -29,6 +29,10 @@ def main():
     }
     is_rows=signature==(50,50,frozenset({(15,16),(34,33)}))
     bot = RowsBot() if is_rows else (TacticalBot() if signature in tactical_maps else SafeEconomyBot())
+    if signature == (40,40,frozenset({(19,17),(20,22)})):
+        from road_reliability import RoadReliable
+        class RoadEconomyBot(CurrentContent, RoadReliable, EconomyBot): pass
+        bot = RoadEconomyBot()
     draft_policy=rows_draft if is_rows else draft
     while True:
         try:

@@ -1,5 +1,11 @@
 # Battlecode strategy implementation
 
+## Road of Riches recall — 28 October 2026
+
+On the recognised Road of Riches layout only, ordinary champions treat a camp as an immediate recall threat only while it is awake. This prevents a recovering champion repeatedly walking away from a dormant monster that cannot interrupt the recall. Visible enemy champions and awake in-range monsters retain the previous escape logic. The current `CurrentContent` and `Reliable` policies remain the base; the separate Rows controller is preserved. `road_reliability.py` contains the conditional controller. Full test outcomes and remaining errors are at the top of STRATEGY-RESULTS.md.
+
+The recorded test pool contains 70 official layouts. Use `python scripts/benchmark_pool.py --bot my-bot --opponent pre-strategy-v2 --jobs 4 --label fresh-pool-test` for both sides of that recorded snapshot, or add `--maps 00road-of-riches` for a focused run. Labels must be new. The tracked pool manifest and hash validation prevent accidentally testing only the 17 legacy layouts or silently using edited maps.
+
 ## CAMSTAT-driven passive correction - 27 October 2026
 
 The active bot now recognizes Jungle Emblems of Strength, Focus and Health when estimating neutral-camp damage. The passive belongs to the family, so counting only Strength understated survivability for Focus/Health builds. Each camp-selection call now reads inventory once and reuses that snapshot. This applies to bot.py, economy_bot.py, rows_bot.py and camp_policy.py; equipment.py contains the shared predicate. Drafts, item purchases, banking thresholds and movement policy were not changed in this iteration. All fifteen installed Python modules match the tested camstat-passives-v1 snapshot exactly.
