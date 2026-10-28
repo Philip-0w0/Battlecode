@@ -1,0 +1,42 @@
+Bot update - 28 October 2026
+
+Active project: C:\Battlecode\Battlecode
+Updated Python my-bot; C++ my-bot-cpp remains at its prior validated version.
+
+When a champion carries gems, tactical engagement now counts a healthy ally as
+support only if it is not recalling, submitting gems or teleporting, and is
+already in attack range or can reach an attack tile in one movement phase.
+Movement respects terrain, champions, camps and teleport blockers. The acting
+champion stays occupied in allied path checks. A distance prefilter and turn
+budget checks bound this extra work. Empty-carrier engagements and bank defence
+keep their existing rules. This affects the tactical controllers on Packs/Eight.
+
+Why: the 89 supplied opponent records showed substantial PvP gem losses. Nearby
+allies do not necessarily provide immediate support. The earlier blanket ban on
+pursuit while carrying gems failed, so that broader rule was not adopted.
+
+Validation: 62 Python tests passed, including 9 new scenarios for the actual
+engagement method. The changed bot won 6/8 complete engine-2.0.0 release games on
+both starting sides of Packs and Eight against two frozen opponents: 3/4 against
+the current policy and 3/4 against an older tactical bot. Eight was 4/4; Packs
+was 2/4. These are small local comparison samples, not a ranked win-rate claim.
+No caught bot errors or engine faults occurred in these eight games. There were
+26 fuel exhaustion events versus 16 for the opponents, so budget pressure still
+needs work. The installed source built successfully and completed two 80-round
+smokes on Packs and Eight without caught bot errors.
+
+C++ experiments were not promoted. Immutable camp-design caching passed 48 native
+scenarios / 1280 differential fixtures / 4722 assertions, and reduced aggregate
+fuel exhaustion events from 640 to 491 across 14 comparisons, but won only 5/14
+and lost more gems. The support policy combined with that cache won 1/4; isolated
+against the unchanged C++ bot it won 2/4 with one caught error. Performance and
+strategy changes need independent validation in the smaller native budget.
+
+Eight's local camp handles 0,1,3 were verified as elk, not Monoliths. The available
+summary files omit position/health/channel timelines, so they do not establish
+that a particular banking route or accidental boss activation caused a death.
+
+Backup: bots\before-support-1028\src
+Evidence: replays\support-update-1028 (results, summaries, installed checks).
+Unpromoted source: work\experiments-1028 (not configured as active bots).
+No website submission or Git commit/push was performed.

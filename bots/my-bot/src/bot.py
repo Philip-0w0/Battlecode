@@ -585,6 +585,37 @@ class Bot:
 
     def engage(self, me, defend_only=False):
         """Defend home resources and focus isolated enemies with nearby allies."""
+        protect_load = not defend_only and bool(me.gem_count())
+        support_blocked = None
+        def can_contribute(ally, enemy_position):
+            nonlocal support_blocked
+            # Self is the planned actor; empty roaming and bank defence keep
+            # their existing policy. Only passive support estimates change.
+            if not protect_load or ally == me:
+                return True
+            self.check_budget()
+            position = ally.position()
+            radius = ally.attack_range()
+            moves = max(0, int(ally.base_stats().base_move_speed))
+            distance = dist(position, enemy_position)
+            if distance > radius + moves:
+                return False
+            if ally.is_recalling() or ally.is_submitting_gems() or ally.is_teleporting():
+                return False
+            if distance <= radius:
+                return True
+            if not moves:
+                return False
+            if support_blocked is None:
+                support_blocked = (self.terrain | bc.vision.champion_tiles()
+                                   | bc.vision.camp_tiles() | bc.vision.teleport_tiles())
+            # Keep the acting champion occupied; only this ally's origin clears.
+            blocked = support_blocked | bc.Bitboard()
+            blocked.set(position, False)
+            self.check_budget()
+            reachable = blocked.reachable_tiles(position, moves).positions()
+            self.check_budget()
+            return any(dist(p, enemy_position) <= radius for p in reachable)
         enemies = self.enemies()
         for enemy in sorted(enemies,key=lambda e:e.health()):
             self.check_budget()
@@ -594,7 +625,8 @@ class Bot:
             contest=any(crate and dist(p,center)<=3 for crate,center in zip(self.crates,self.centers))
             if self.corners and not contest and not defend_only: continue
             home=dist(p,self.home_center)<=dist(p,self.enemy_center)
-            friends=[a for a in self.allies() if dist(a.position(),p)<=6 and a.health()>=a.max_health()*.65]
+            friends=[a for a in self.allies() if dist(a.position(),p)<=6 and a.health()>=a.max_health()*.65
+                     and can_contribute(a,p)]
             foes=[e for e in enemies if dist(e.position(),p)<=6]
             if not contest and len(friends)<2: continue
             good=favorable_fight(sum(a.health() for a in friends),sum(a.strength()+.25*a.focus() for a in friends),

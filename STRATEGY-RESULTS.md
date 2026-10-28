@@ -196,3 +196,12 @@ The active 17-module Python bot now has a C++20/WASI port in `bots/my-bot-cpp`. 
 ## Match-data update - 27 October 2026
 
 All 89 supplied ranked/unranked/tournament summaries were reviewed. Released C++ changes snapshot sort keys instead of querying live SDK state in comparators; both analysis tools now cover all three match kinds (89 files instead of 36). Native validation passes 46 scenarios and 1,280 differential fixtures. Six full C++ comparisons split 3-3; the C++ candidate still lost two Packs games to Python. A carry-pursuit restriction regressed and was rejected. Python remains unchanged and recommended. See `MATCH-DATA-UPDATE.txt` and `replays/match-data-update-1027/validation.json` for exact scope, cohorts and evidence.
+
+
+## 28 October 2026 - reachable support while carrying gems
+
+The Python tactical policy now excludes channeling or unreachable allies from its
+engagement support estimate while carrying gems. Actual method fixtures pass and
+local release comparisons won 6/8 (Eight 4/4; Packs 2/4). See SUPPORT-UPDATE.txt
+for limitations and replays/support-update-1028 for evidence. C++ cache/support
+experiments were not promoted after weaker local results.
