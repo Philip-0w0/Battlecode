@@ -2,7 +2,7 @@
 
 Decode .camstat files with cambc 4.0.0 summary FILE -o ranked_MATCH_A_vs_B.json,
 then pass their directory and your team UUID to this script. JSON filenames must
-retain their original ranked_MATCH_UUID_TEAM_A_UUID_vs_TEAM_B_UUID stem.
+retain their original ranked_, unranked_, or tournament_ match/team UUID stem.
 """
 import argparse
 import collections
@@ -49,7 +49,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     rows=[]
-    files=sorted(args.decoded_directory.glob('ranked_*.json'))
+    files=sorted(path for path in args.decoded_directory.glob('*.json') if path.name.startswith(('ranked_','unranked_','tournament_')))
     for path in files:
         data=json.loads(path.read_text(encoding='utf8'))
         if not data['diagnostics']['detailedCaptureComplete']:

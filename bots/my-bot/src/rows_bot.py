@@ -314,10 +314,10 @@ class Bot:
             hp, incoming, boss = self.group_stats[index]
             if index == self.target and len(group) <= 4:
                 hp = sum(c.health() if c.is_visible() else c.base_stats().base_health for c in group)
-            # Do not open a boss while weak. Other camps give much safer growth.
-            if boss and me.strength() < 200:
-                continue
             ready = isinstance(state, gm.CampGroupRewardAvailable)
+            # Combat restrictions do not apply to a cleared group awaiting capture.
+            if boss and not ready and me.strength() < 200:
+                continue
             damage = max(1, me.strength() * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
             clear = 0 if ready else hp / damage
             value = (group.gem_value() + .18 * group.gold_value()) / (travel + clear + 7)
@@ -328,7 +328,7 @@ class Bot:
             # Conservative long-clear estimate; later monsters die before the last.
             reserve = incoming * clear * .55
             if not ready and reserve > me.health() * .75: value *= .15
-            if boss: value *= .15
+            if boss and not ready: value *= .15
             if self.alert and dist(position, self.alert) <= 6: value *= .45
             if ready:
                 value *= 2

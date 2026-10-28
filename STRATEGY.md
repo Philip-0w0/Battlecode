@@ -146,3 +146,18 @@ All three controllers create fresh attack masks with budget checks around engine
 The optional `bots/heart-of-ruin-sdk4` variant deliberately drafts Heart on zero-gold maps. Its 0/4 full-match screen makes it experimental, not the recommended default. Other rejected experiments included early Heart drafts, lazy routing and ranged Monolith siege. The current Monolith has range 5, so range-4 siege abilities do not safely outrange it. Boss-only and heavily guarded objectives remain unresolved strategic weaknesses.
 
 Source backup: `bots/before-sdk4-1027`. Runtime/config/map backup: `work/before-sdk4-runtime-1027`. Full experiment logs remain under `work/sdk4-evaluation/replays`; selected evidence is in `replays/sdk4-content-update`.
+
+
+## Cleared boss collection - 27 October 2026
+
+All four camp selectors check the observed reward state before imposing boss combat requirements. A visible cleared group may be collected by a weak solo champion, and its reward no longer carries the live-boss 85% discount. Live and unseen bosses retain their combat safeguards. Rows ownership rules and enemy-danger scoring still apply. Tests cover weak collectors, active captures, tactical Rows roles, unseen/live bosses, and competition with ordinary rewards. Source backup: `bots/before-reward-fix-1027`.
+
+
+## C++ migration - 27 October 2026
+
+The active 17-module Python bot now has a C++20/WASI port in `bots/my-bot-cpp`. Native C++ analysis, benchmarking, map checking and tests are in `cpp-tools`. The Python source is preserved as `python-reference`, and `my-bot` remains recommended because the migration comparison regressed. Verification: 44 native scenarios, 1,280 differential fixtures, exact analysis parity over 135 historical matches, 70 bounded pre-final map checks, eight focused final checks, and an installed-source smoke. See `CPP-MIGRATION.txt` and `replays/cpp-migration-1027/validation.json` for exact source checkpoints and limits. No deployment was performed.
+
+
+## Match-data update - 27 October 2026
+
+All 89 supplied ranked/unranked/tournament summaries were reviewed. Released C++ changes snapshot sort keys instead of querying live SDK state in comparators; both analysis tools now cover all three match kinds (89 files instead of 36). Native validation passes 46 scenarios and 1,280 differential fixtures. Six full C++ comparisons split 3-3; the C++ candidate still lost two Packs games to Python. A carry-pursuit restriction regressed and was rejected. Python remains unchanged and recommended. See `MATCH-DATA-UPDATE.txt` and `replays/match-data-update-1027/validation.json` for exact scope, cohorts and evidence.

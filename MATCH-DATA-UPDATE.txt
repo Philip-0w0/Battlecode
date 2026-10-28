@@ -1,0 +1,54 @@
+Match-data update - 27 October 2026
+
+Project: C:\Battlecode\Battlecode
+Installed: C++ cached sort keys, native/Python summary readers for all match kinds.
+Recommended default remains Python my-bot. Its strategy source is unchanged.
+
+All 89 explicitly supplied files were decoded with the official CLI: 50 unranked,
+36 ranked and 3 tournament. There are 139 teams, 178 team observations and 38 map
+hashes. None matches team 48016704-2f30-4bb9-8c37-9b6a766e53af. Eighty-eight
+matches use engine 1.0.3; one uses 2.0.0. These are opponent reference observations,
+not new results for our bot, and old-engine results are kept distinct.
+
+Findings used to choose experiments:
+- Winners banked 83,179/90,753 gems (91.65%); losers 32,417/44,305 (73.17%).
+- 6,497/7,905 losing-team gem losses (82.2%) were to champions.
+- Winners collected more by round 200 in 54/89 games, versus 27 lower and 8 ties.
+- First-deposit timing and smaller deposit batches did not consistently predict
+  wins. Historic fuel totals have large outliers and do not prove a causal policy.
+These correlations informed hypotheses; they were not copied into thresholds.
+
+Released code changes:
+- Camp ordering now snapshots our position once instead of calling the SDK twice
+  per comparison; static travel queries reuse that origin while no action occurs.
+- Enemy health keys and altar distance keys are observed once before sorting.
+  Comparators use owned values, preserve first-tie order, and cannot change their
+  keys if the engine advances during a live query. A throwing key getter does not
+  partially reorder the input. This is a correctness/query-efficiency fix.
+- Both analyzers accept ranked_, unranked_ and tournament_ summaries. The previous
+  reader silently covered only 36 of these 89 files; the corrected reader covers
+  all 89 and exactly matches the Python result over all 178 team observations.
+
+Validation:
+- 46 native scenarios, 1,280 differential fixtures, 4,616 assertions passed.
+- 14 summary filename contract checks passed.
+- Eight representative maps, 80 rounds each, zero caught errors.
+- Six full games against frozen pre-update C++: 3 wins/6, zero caught errors/faults.
+  Packs collected 65 gems by round 200 on both sides, versus 28 for the old C++.
+  The split does not establish an overall competitive win-rate gain.
+- Two Packs games against Python: 0/2, zero caught errors/faults. Python remains
+  the recommended default. Hard fuel exhaustion remains an unresolved limitation.
+- Installed source release build, native tests, full analyzer parity and an
+  80-round smoke passed in C:\Battlecode\Battlecode.
+
+Rejected strategy experiment:
+Skipping deliberate pursuits while carrying gems preserved immediate defence and
+ordinary combat, but lost 0/4 in Python and won only 1/4 in C++. It was not promoted.
+The experiment and its focused tests remain under work/rejected-carry-experiment-1027.
+Boss-opening guards and build-order changes remain separate, unproven ideas.
+
+Backups:
+- Previous C++ bot: bots/before-data-cpp-1027/src
+- Previous analysis tools: work/before-data-tools-1027
+Evidence and cohort details: replays/match-data-update-1027/
+No website upload, activation, commit or push was performed.

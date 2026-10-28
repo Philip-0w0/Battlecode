@@ -1,0 +1,1 @@
+Frozen Python bot before C++ migration, 27 October 2026. Source hashes are recorded in cpp-tools/tests/python-parity.json. Active Python my-bot remains preserved.

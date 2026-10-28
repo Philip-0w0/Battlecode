@@ -148,3 +148,31 @@ Selected CSV evidence, current map manifest and installed source hashes: `replay
 The final setup-order safeguard also passes a focused 12-round release-mode check on current Packs, Quadrants, Ribs, Rows and adgato-gemcombat1: 5/5, zero caught bot errors. The earlier Quadrants runner timeout passed on a separate installed-source retry. These are bounded compatibility checks.
 
 Completed preflight: all 70 current maps exercised with the production candidate preceding the final setup-order safeguard. First pass: 69 passed, 1 runner timeout (Quadrants), zero caught bot errors. Quadrants passed on installed-source retry. After the setup-order safeguard, all five focused installed-source checks passed. This is compatibility evidence, not 70 full-game wins. Evidence: `replays/sdk4-content-update/pre-setup-order-70-map-preflight.json`, `sdk4-installed-retry.json` and `sdk4-installed-final.json`.
+
+
+## Cleared boss reward selection - 27 October 2026
+
+The active source now separates collecting a cleared boss reward from fighting a live boss. Previously all four selectors either rejected a weak/solo collector or multiplied the cleared reward's value by 0.15. The fix applies combat requirements and that penalty only while the group has not been observed reward-available. Existing ownership, danger and reachability policies remain.
+
+Six scenario tests exercise the actual selector methods and reproduce failures in the preserved source. The installed source passes all 41 tests. Full release-mode comparisons against `before-reward-fix-1027` produced 3/6 wins, zero caught errors, and zero engine faults:
+
+- 00packs A: win, 1018.0–618.0 gems, 1495 rounds; hard fuel 4.
+- 00packs B: loss, 749.0–1007.0 gems, 1484 rounds; hard fuel 4.
+- 00rows A: loss, 944.0–944.0 gems, 2000 rounds; hard fuel 0.
+- 00rows B: win, 970.0–951.0 gems, 2000 rounds; hard fuel 0.
+- 00monolith A: loss, 870.0–1006.0 gems, 1427 rounds; hard fuel 10.
+- 00monolith B: win, 1011.0–902.0 gems, 1389 rounds; hard fuel 10.
+
+These comparisons cover three maps and both sides; they do not establish an overall ladder improvement. Hard fuel exhaustion remains a limitation. Reward-selection correctness is established by the scenario tests, not an assertion that every full match exercised the cleared-boss case.
+
+Evidence: `replays/reward-capture-1027/results.csv` and its JSON summaries/replays. Previous active source: `bots/before-reward-fix-1027`. No website upload, activation, commit or push was performed.
+
+
+## C++ migration - 27 October 2026
+
+The active 17-module Python bot now has a C++20/WASI port in `bots/my-bot-cpp`. Native C++ analysis, benchmarking, map checking and tests are in `cpp-tools`. The Python source is preserved as `python-reference`, and `my-bot` remains recommended because the migration comparison regressed. Verification: 44 native scenarios, 1,280 differential fixtures, exact analysis parity over 135 historical matches, 70 bounded pre-final map checks, eight focused final checks, and an installed-source smoke. See `CPP-MIGRATION.txt` and `replays/cpp-migration-1027/validation.json` for exact source checkpoints and limits. No deployment was performed.
+
+
+## Match-data update - 27 October 2026
+
+All 89 supplied ranked/unranked/tournament summaries were reviewed. Released C++ changes snapshot sort keys instead of querying live SDK state in comparators; both analysis tools now cover all three match kinds (89 files instead of 36). Native validation passes 46 scenarios and 1,280 differential fixtures. Six full C++ comparisons split 3-3; the C++ candidate still lost two Packs games to Python. A carry-pursuit restriction regressed and was rejected. Python remains unchanged and recommended. See `MATCH-DATA-UPDATE.txt` and `replays/match-data-update-1027/validation.json` for exact scope, cohorts and evidence.

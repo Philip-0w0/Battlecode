@@ -1,0 +1,77 @@
+C++ migration - 27 October 2026
+
+Installed project: C:\Battlecode\Battlecode
+C++ bot: bots/my-bot-cpp/src (8 source/header files, SDK 4.0.0, C++20/WASI).
+Python source: bots/my-bot/src remains unchanged and recommended for competition.
+Frozen reference: bots/python-reference/src.
+
+All 17 active Python modules are represented in the C++ implementation:
+- main.py -> entry.cpp
+- draft.py, rows_draft.py, map_profile.py -> strategy_draft.cpp and core.h
+- bot.py, economy_bot.py, rows_bot.py, camp_policy.py -> controller.h,
+  state.cpp, combat.cpp and economy.cpp; all three dispatch modes remain.
+- coordination.py, rows_coordination.py -> core.h Memory and state.cpp adapters
+- assignments.py, progress.py, tactics.py -> core.h
+- equipment.py -> core.h has_jungle and combat.cpp equipment builds
+- current_content.py -> state.cpp Heart observations and combat.cpp Heart logic
+- reliability.py -> state.cpp movement/initialization, economy.cpp progress,
+  combat.cpp retreat snapshots
+- randomness.py -> core.h Random and randomness.h
+
+Native C++ tools replace benchmark.py/benchmark_current.py, smoke_current_maps.py
+and analyze_camstats.py: cpp-tools/cam-tools.exe. Native test sources, binaries
+and immutable Python-derived fixtures are included. No Python runtime is needed
+to build/run the C++ bot or operate these tools. The earlier Python scripts and
+historical experimental bots remain as references; rejected bot experiments were
+not silently made defaults or independently rewritten into more C++ variants.
+
+Verification:
+- Official CLI 4 release build and source bundle verified.
+- 44 native scenarios, 1,280 differential fixtures, 4,612 assertions passed.
+- Native analysis exactly equals Python's analysis for all 135 historical matches
+  and 216 teams, including complete per-team results and conservation checks.
+- Earlier migration candidate: 70/70 current maps, 12 rounds, zero caught errors.
+- Final source after Heart visibility rebinding: 8/8 focused maps, 60 rounds,
+  zero caught errors. Installed source: 80-round Packs smoke, zero caught errors.
+- Full forced-roster match includes Heart, Stellar, Prism, Willow, Cassi/Issac,
+  Ren and Vesper alongside standard picks: zero caught errors and engine faults.
+  The other full matches cover Ryth and Marcella too. This verifies roster
+  compatibility, not that every possible skill interaction has been exhausted.
+
+Performance and release decision:
+Five pre-final comparison games against the frozen Python bot won 1/5. The final
+source also lost Monolith B (708-1008). These are separate source checkpoints,
+not a claim of one identical-source six-game suite. The current port performs
+worse than Python, so Python remains the recommended default. The C++ port is
+an available migration candidate, not an automatic strategy improvement.
+Native fuel overruns remain a tuning priority. A lower-reserve variant lost both
+Packs screens and logged an error, so that variant was rejected.
+
+Runtime differences handled during migration:
+- Native ordinary fuel is approximately 100,000 versus 2,500,000 for Python on
+  engine 2.0.0. Reserve thresholds were scaled; literal Python totals caused the
+  first prototype to yield without acting and were not released.
+- Stable roster and camp metadata are reused; live health/position queries stay
+  fresh. Enemy Heart ability metadata is explicitly rebound once visible because
+  C++ ability views cache their construction-time visibility result.
+- Python min/max first-tie behavior and group-score/index tie rules are preserved.
+- C++ standard exceptions are logged and yield a turn; Python traceback formatting
+  is language-specific and is not reproduced as a fake native stack trace.
+
+PowerShell commands (from the project folder):
+  $env:CAMBC_CACHE = "$PWD\work\runtime\cache"
+  .\tools\cambc.exe build my-bot-cpp --release
+  .\tools\cambc.exe run my-bot-cpp python-reference --map maps/00packs.map26a --release
+  .\cpp-tools\core-tests.exe cpp-tools/tests/python-parity.json
+  .\cpp-tools\cam-tools.exe benchmark --bot my-bot-cpp --opponent python-reference --maps 00packs 00rows --label cpp-comparison
+  .\cpp-tools\cam-tools.exe smoke --bot my-bot-cpp --opponent sdk4-map-probe-cpp --rounds 30 --label cpp-map-check
+
+Optional upload, only if you choose to deploy this weaker C++ candidate:
+  .\tools\cambc.exe submit my-bot-cpp --note "C++ migration candidate"
+
+Evidence: replays/cpp-migration-1027/validation.json and accompanying records.
+The native tools use pinned nlohmann/json 3.12.0 (MIT); source, license and
+checksum are included in cpp-tools/vendor and cpp-tools/README.txt.
+No website upload, activation, Git commit or push was performed.
+
+Latest data-driven update: C++ sort-key snapshots and all-kind summary support. Python remains recommended. See MATCH-DATA-UPDATE.txt.

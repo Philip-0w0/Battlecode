@@ -28,3 +28,9 @@ Original source: bots/before-sdk4-1027
 Original runtime/config/maps: work/before-sdk4-runtime-1027
 See STRATEGY.md and STRATEGY-RESULTS.md for changes and evidence.
 No account login, competition submission, commit or push was performed.
+
+Latest local improvement: cleared boss rewards are collectible without live-boss combat requirements. Validated with 41 tests and six full regression matches. Previous source: bots/before-reward-fix-1027. Upload my-bot again to publish this change.
+
+C++ migration available as bots/my-bot-cpp. Python remains recommended after comparison regressions. See CPP-MIGRATION.txt for build commands, validation and native tools.
+
+Latest data-driven update: C++ sort-key snapshots and all-kind summary support. Python remains recommended. See MATCH-DATA-UPDATE.txt.

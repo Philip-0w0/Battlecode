@@ -352,17 +352,17 @@ class Bot:
             hp, incoming, boss = self.group_stats[index]
             if index == self.target and len(group) <= 4:
                 hp = sum(c.health() if c.is_visible() else c.base_stats().base_health for c in group)
-            # Do not open a boss while weak. Other camps give much safer growth.
+            ready = isinstance(state, gm.CampGroupRewardAvailable)
+            # A cleared boss needs a collector, not a healthy combat squad.
             partners = ([a for a in self.allies() if a != me and a.health() >= .65*a.max_health()
-                        and dist(a.position(),position)<=7] if boss else [])
-            if boss and self.rows:
+                        and dist(a.position(),position)<=7] if boss and not ready else [])
+            if boss and not ready and self.rows:
                 if self.kind not in (C.VENDETTA,C.TAVI): continue
                 partners=[a for a in partners if a.champion_name() in (C.VENDETTA,C.TAVI)]
-            if boss and (not partners or me.health()<.65*me.max_health()): continue
-            ready = isinstance(state, gm.CampGroupRewardAvailable)
+            if boss and not ready and (not partners or me.health()<.65*me.max_health()): continue
             damage = max(1, strength * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
             clear = 0 if ready else hp / damage
-            if boss:
+            if boss and not ready:
                 damage += sum(a.strength()*1.3 for a in partners)
                 clear = 0 if ready else hp/damage
                 if incoming*clear*.55 > me.health()+sum(a.health() for a in partners): continue
@@ -382,7 +382,7 @@ class Bot:
             # Conservative long-clear estimate; later monsters die before the last.
             reserve = incoming * clear * .55
             if not ready and reserve > health * .75: value *= .15
-            if boss: value *= .15
+            if boss and not ready: value *= .15
             if self.alert and dist(position, self.alert) <= 6: value *= .45
             if ready:
                 value *= 2
