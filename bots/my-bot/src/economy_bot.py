@@ -173,6 +173,8 @@ class Bot:
         if not me.can_cast():
             return False
         options = []
+        aoe_samples = None
+        aoe_lookup = None
         for ability in me.abilities():
             self.check_budget()
             if not ability.is_ready():
@@ -209,10 +211,28 @@ class Bot:
                     immune = isinstance(target, bc.Champion) and target.champion_name() == C.MARCELLA
                     if ability.is_cc() and immune and info.modifier == 0: continue
                     if ability.is_aoe_damage():
-                        affected = [t for t in targets if t.is_visible() and t.health() > 0
-                                    and dist(t.position(), target.position()) <= info.radius]
-                        value = sum(min(t.health(), me.focus() * info.modifier) for t in affected)
-                        destination = target.position()
+                        # Planning performs no actions: sample live observations once,
+                        # then score candidate centres using primitive snapshots.
+                        if aoe_samples is None:
+                            aoe_samples = []
+                            aoe_lookup = {}
+                            for unit in targets:
+                                self.check_budget()
+                                if not unit.is_visible(): continue
+                                health = unit.health()
+                                if health <= 0: continue
+                                position = unit.position()
+                                point = bc.Vec2(position.x, position.y)
+                                aoe_samples.append((point, health))
+                                aoe_lookup[unit] = point
+                        destination = aoe_lookup.get(target)
+                        if destination is None: continue
+                        damage = me.focus() * info.modifier
+                        value = 0
+                        for sample_index, (position, health) in enumerate(aoe_samples):
+                            if sample_index % 8 == 0: self.check_budget()
+                            if dist(position, destination) <= info.radius:
+                                value += min(health, damage)
                     else:
                         value = min(target.health(), me.focus() * info.modifier)
                         destination = target

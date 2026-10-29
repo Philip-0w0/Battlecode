@@ -33,6 +33,10 @@ def main():
         from road_reliability import RoadReliable
         class RoadEconomyBot(CurrentContent, RoadReliable, EconomyBot): pass
         bot = RoadEconomyBot()
+    if signature == (60,60,frozenset({(25, 23), (34, 4), (34, 36), (34, 55), (12, 28), (21, 44), (38, 15), (47, 31), (25, 4), (25, 55)})):
+        from islands_bot import Bot as IslandsBot
+        class IslandsEconomyBot(CurrentContent, Reliable, IslandsBot): pass
+        bot = IslandsEconomyBot()
     draft_policy=rows_draft if is_rows else draft
     while True:
         try:

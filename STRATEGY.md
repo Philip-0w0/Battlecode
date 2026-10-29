@@ -1,5 +1,13 @@
 # Battlecode strategy implementation
 
+## Replay corpus iteration - 29 October 2026
+
+On the recognised Islands layout only, the camp selector removes disconnected camps before taking its nearest-ten shortlist. The previous order let ten unreachable inner-island camps hide every reachable gem route. `islands_bot.py` subclasses the existing economy controller; `main.py` selects it using the exact dimensions and ten altar coordinates. Other map controllers retain their selection policy.
+
+The economy controller now samples visible target positions and health once during area-damage planning and scores candidate centres from those local snapshots. The samples are discarded on every cast call; no action occurs while comparing choices. Unit objects remain distinct across champion/camp handles, and budget checks guard both sampling and scoring. This reduces repeated SDK getters for Ryth's area attack without changing the non-area ability branches, gear or draft order. Separate Rows/tactical spell implementations are preserved.
+
+`scripts/index_replay_archives.py` indexes the supplied ZIPs and extracts only matches whose filenames contain the requested team in a team slot. `scripts/decode_historical_replays.cjs` reads engine 1.0.3 replays through the official visualiser WASM and snapshot parser; set CAMBC_VISUALISER_ASSETS to the matching official asset directory. The decoder deliberately rejects other replay versions. Historical replay findings and current engine 2.0.0 tests are separate cohorts. See the current results section for outcomes and trade-offs.
+
 ## Road of Riches recall — 28 October 2026
 
 On the recognised Road of Riches layout only, ordinary champions treat a camp as an immediate recall threat only while it is awake. This prevents a recovering champion repeatedly walking away from a dormant monster that cannot interrupt the recall. Visible enemy champions and awake in-range monsters retain the previous escape logic. The current `CurrentContent` and `Reliable` policies remain the base; the separate Rows controller is preserved. `road_reliability.py` contains the conditional controller. Full test outcomes and remaining errors are at the top of STRATEGY-RESULTS.md.
