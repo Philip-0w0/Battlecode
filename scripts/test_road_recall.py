@@ -11,6 +11,9 @@ ROOT = Path(__file__).parent
 SOURCE = Path(os.environ.get('BATTLECODE_TEST_SOURCE',
     str(ROOT.parent/'bots/my-bot/src'))).resolve()
 
+# Keep local source imports available when this test is run directly.
+sys.path.insert(0, str(SOURCE))
+
 def load_source(name, filename):
     spec = importlib.util.spec_from_file_location(name, SOURCE/filename)
     result = importlib.util.module_from_spec(spec)
@@ -113,6 +116,37 @@ class StopBeforeTurn(BaseException):
     pass
 
 
+class RecallComposition(unittest.TestCase):
+    def controller(self,camps):
+        # Exercise the real wrapper MRO selected for both Road and The Front;
+        # the ordinary, non-evacuating path must reach the awake-only executor.
+        fake_sdk.Team=types.SimpleNamespace(ALLY=0,ENEMY=1)
+        fake_sdk.ChampionType=types.SimpleNamespace(HEART_OF_RUIN=99)
+        fake_sdk.ItemType=object()
+        fake_sdk.game_map=types.SimpleNamespace()
+        with patch.dict(sys.modules,{'cambc':fake_sdk,
+                'map_profile':types.SimpleNamespace(profile=lambda:{}),
+                'reliability':reliability}):
+            protection=load_source('tested_protection_mro','protection.py')
+            safety=load_source('tested_safety_mro','safety.py')
+            content=load_source('tested_content_mro','current_content.py')
+        class Integrated(protection.Protection,safety.Safety,content.CurrentContent,Controller):
+            pass
+        bot=Integrated(camps)
+        bot.evacuating=False;bot.kind=0;bot._heart_emergency=False;bot.safety_active=False
+        return bot
+    def test_real_front_road_wrapper_chain_recalls_between_dormant_monsters(self):
+        bot,me=self.controller([Unit(awake=False),Unit(awake=False,x=2)]),Me()
+        bot.retreat(me,[])
+        self.assertEqual(me.recalls,1)
+        self.assertEqual(bot.escapes,[])
+    def test_real_front_road_wrapper_chain_escapes_from_awake_monsters(self):
+        bot,me=self.controller([Unit(awake=True)]),Me()
+        bot.retreat(me,[])
+        self.assertEqual(me.recalls,0)
+        self.assertEqual(len(bot.escapes),1)
+
+
 class Routing(unittest.TestCase):
     def selected_class(self, width, height, altars):
         created = []
@@ -124,11 +158,13 @@ class Routing(unittest.TestCase):
             def __init__(self): created.append(self)
         class Content: pass
         class Budget(Exception): pass
-        gm = types.SimpleNamespace(width=lambda: width, height=lambda: height,
+        gm = types.SimpleNamespace(width=lambda: width, height=lambda: height,camp_groups=lambda:[],
             altars=lambda: types.SimpleNamespace(
                 positions=lambda: [Point(x,y) for x,y in altars]))
         sdk = types.ModuleType('cambc')
         sdk.game_map = gm
+        sdk.ChampionType=types.SimpleNamespace(HEART_OF_RUIN=99)
+        sdk.ItemType=object()
         def stop(): raise StopBeforeTurn()
         sdk.is_draft = stop
         stubs = {
@@ -139,6 +175,8 @@ class Routing(unittest.TestCase):
             'economy_bot': types.SimpleNamespace(Bot=Economy, TurnBudget=Budget),
             'rows_bot': types.SimpleNamespace(Bot=Rows, TurnBudget=Budget),
             'current_content': types.SimpleNamespace(CurrentContent=Content),
+            'safety':types.SimpleNamespace(Safety=type('Safety',(),{})),
+            'protection':types.SimpleNamespace(Protection=type('Protection',(),{})),
             'reliability': reliability,
             'road_reliability': module,
         }
@@ -167,7 +205,8 @@ class Routing(unittest.TestCase):
 
     def test_rows_keeps_rows_controller(self):
         selected = self.selected_class(50,50,[(15,16),(34,33)])
-        self.assertEqual(selected.__name__, 'Rows')
+        self.assertEqual(selected.__name__, 'SafeRowsBot')
+        self.assertEqual(selected.__mro__[4].__name__, 'Rows')
 
     def test_unknown_map_keeps_normal_controller(self):
         selected = self.selected_class(100,100,[(1,1)])

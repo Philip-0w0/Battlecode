@@ -45,10 +45,10 @@ class Reliable:
         self.check_budget()
         if me.can_move() and not goals.is_set(me.position()):
             p=me.position()
-            # The cached static camp distance is cheap; banking uses distance to
-            # the nearest altar. Goal changes alone do not reset productivity.
+            # Both farming and banking measure actual static travel distance.
+            # Goal changes alone do not reset productivity.
             distance = (self.path_fields[self.target].get(p) if self.target is not None
-                        else min(dist(p,a) for a in self.altars))
+                        else self.bank_field.get(p))
             key=(self.target,bool(me.gem_count()))
             resources=(me.gold_count(),me.gem_count(),bc.global_submitted_gems(bc.Team.ALLY),None)
             self.route_progress.observe(bc.round_number(),key,(p.x,p.y),distance,resources)

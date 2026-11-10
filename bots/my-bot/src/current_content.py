@@ -1,6 +1,5 @@
 """SDK 4 content support: awake camps, live camp lookup and Heart of Ruin."""
 import cambc as bc
-from map_profile import profile
 
 T,C,I=bc.Team,bc.ChampionType,bc.ItemType
 
@@ -11,7 +10,6 @@ class CurrentContent:
         self._heart_emergency=False
         self._heart_threat=None
         self._enemy_hearts=[e for e in bc.champions(T.ENEMY) if e.champion_name()==C.HEART_OF_RUIN]
-        self.map_info=profile()
         super().setup(me)
 
     def visible_camps(self):
@@ -78,6 +76,13 @@ class CurrentContent:
         if self.kind!=C.HEART_OF_RUIN: return super().cast(me,targets,moved,attacked)
         self.check_budget()
         if not me.can_cast(): return False
+        # Cooldowns usually rule out both actions. Avoid scanning every target
+        # and rebuilding the movement mask in those turns.
+        abilities=me.abilities()
+        shield=next((a for a in abilities if a.is_shield() and a.is_ready()),None)
+        dash=next((a for a in abilities if a.is_dash() and a.is_ready()),None)
+        if shield is None and (dash is None or self.recovering): return False
+        origin=me.position()
         units=[]
         incoming=0
         forbidden=[]
@@ -86,31 +91,42 @@ class CurrentContent:
             if not t.is_visible() or t.health()<=0: continue
             p=t.position()
             awake=isinstance(t,bc.Champion) or t.is_awake()
-            if awake and dist(p,me.position())<=t.attack_range()+1: incoming+=t.strength()
+            if awake and dist(p,origin)<=t.attack_range()+1: incoming+=t.strength()
             if isinstance(t,bc.Camp) and (self.target is None or t.camp_group()!=self.groups[self.target]):
-                forbidden.append(p)
+                forbidden.append((p.x,p.y))
                 continue
-            units.append((p,t.health(),isinstance(t,bc.Champion)))
-        shield=next((a for a in me.abilities() if a.is_shield() and a.is_ready()),None)
+            units.append((p.x,p.y,t.health(),isinstance(t,bc.Champion)))
         if shield is not None and incoming and not me.buffs().has_shield():
             self.check_budget()
             return shield.use()
-        if self.recovering or self.target is None: return False
-        dash=next((a for a in me.abilities() if a.is_dash() and a.is_ready()),None)
+        # Camp targets were filtered above; champion combat does not need a
+        # camp assignment (engage deliberately releases that assignment).
+        if self.recovering: return False
         if dash is None or not units: return False
         info=dash.info()
         if moved and info.exclusive_with_movement: return False
+        # Reserve enough for mask construction, ranking and a legal action.
+        # A guard only inside the scoring loop was too late: sorting itself
+        # could exhaust the turn and resume with obsolete observations.
+        if bc.fuel_remaining()<950000: return False
         blocked=self.blockers(me)
-        candidates=(blocked.reachable_tiles(me.position(),int(info.range)) & dash.valid_tiles() & bc.vision.visible_tiles()).positions()
-        candidates=sorted(candidates,key=lambda p:min(dist(p,pos) for pos,hp,enemy in units))[:9]
+        candidates=(blocked.reachable_tiles(origin,int(info.range)) & dash.valid_tiles() & bc.vision.visible_tiles()).positions()
+        ranked=[]
+        for p in candidates:
+            self.check_budget()
+            x,y=p.x,p.y
+            ranked.append((min(max(abs(x-ux),abs(y-uy)) for ux,uy,hp,enemy in units),p))
+        candidates=[p for _,p in sorted(ranked,key=lambda pair:pair[0])[:9]]
+        self.check_budget()
         damage=dash.damage_amount()
-        current_risk=self.pressure(me.position())
+        current_risk=self.pressure(origin)
         best=None;best_score=0
         for p in candidates:
             self.check_budget()
             if bc.fuel_remaining()<650000: break
-            if p==me.position() or any(dist(p,boss)<=info.radius for boss in forbidden): continue
-            hits=[(hp,enemy) for pos,hp,enemy in units if dist(p,pos)<=info.radius]
+            x,y=p.x,p.y
+            if p==origin or any(max(abs(x-bx),abs(y-by))<=info.radius for bx,by in forbidden): continue
+            hits=[(hp,enemy) for ux,uy,hp,enemy in units if max(abs(x-ux),abs(y-uy))<=info.radius]
             if not hits: continue
             risk=self.pressure(p)
             if risk*3+50>=me.health(): continue

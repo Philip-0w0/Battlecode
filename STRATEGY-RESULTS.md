@@ -1,5 +1,30 @@
 # Strategy integration results — 18 October 2026
 
+## V12 integration and November replay review — 10 November 2026
+
+Final release source: 29 Python modules, CLI/SDK 5.0.1, engine 3.0.0. Every one of the 128 recorded maps was played from both sides against both the old active bot and unchanged supplied v12: two separate 256-game suites. Repeated screens and integration checks are excluded from these totals.
+
+| Metric | Merge vs old active | Old active in those games | Merge vs v12 | v12 in those games |
+| --- | ---: | ---: | ---: | ---: |
+| Wins | 218 | 38 | 126 | 130 |
+| Wins reaching 1,000 submitted gems | 184 | 19 | 101 | 107 |
+| Submitted gems | 227,094 | 134,966 | 195,135 | 198,901 |
+| Deaths | 1,552 | 1,858 | 1,666 | 1,617 |
+| Camp deaths | 1,243 | 1,198 | 1,122 | 1,106 |
+| PvP deaths | 309 | 660 | 544 | 511 |
+| Carried gems lost | 9,407 | 12,882 | 11,136 | 10,956 |
+| Hard fuel-exhaustion events | 2,753 | 9,545 | 4,480 | 4,422 |
+| Caught bot errors | 0 | 14 | 0 | 0 |
+| Engine faults | 0 | 0 | 0 | 0 |
+
+The merged policy retains v12's path-aware navigation, safety, runtime guards, farming and map tuning; restores obstacle-aware contributing allies and ready-boss reward collection; fixes connected cover positioning; preserves Road's awake-camp recall and intended shopping; and applies the replay-derived dormant-monolith recall correction only to The Front. The exact old Islands branch and earlier generic carrier escort were rejected after comparison regressions.
+
+**108/108 offline tests passed**, with an additional independent negative-control cover-position test. Tests cover interrupted setup, stale cast state, lethal-hit resets, unrelated-camp exclusion, shared memory, ally contribution, boss rewards, actual entry-point dispatch, Road shopping, dormant/awake recall and wall-connected cover. Full source hashes match the frozen tested candidate. Installed-source integration checks and bundle validation are recorded separately.
+
+Historical data are separate: 260 own-team engine-3 matches decoded out of 172,006 indexed entries, 137 wins/123 losses, 105 target wins, 47,661 lost gems (21.4%). Counter ABI validation passed 234 checks across three official exports. Selected detailed traces show both delivery freezes and failed PvP; they do not identify the submitted bot's source version. The Front fix produced a 40-0 result on one side in focused checks while the other remained 0-0. Homonoliths spawn pressure, scoreless boss maps, camp deaths and fuel exhaustion remain limitations.
+
+Evidence: `benchmarks/v12-merge-2026-11-10.json`, `benchmarks/published-pool-2026-11-10.json`, `benchmarks/november-replay-findings.md`. Backups/opponents: `before-v12-1110`, `v12-reference-1110`. No competition submission or activation was performed.
+
 ## Replay corpus analysis and selective release - 29 October 2026
 
 All 11 supplied parts were indexed: **273,458 unique replay entries**, with no duplicate names. The **52 matches involving team 48016704-2f30-4bb9-8c37-9b6a766e53af** were extracted, CRC/SHA256 checked and decoded; the remaining entries were indexed, not fully analyzed. Engine 1.0.3 historical results: **11 wins / 41 losses**, 29,712 collected gems, 20,642 submitted, 1,851 still carried and **7,219 lost (24.3%)**, with 1,162 deaths. Ten games submitted nothing: five collected no gems and five collected gems but failed to deliver. Two Islands matches had no collection and no deaths. Two Boss Battle matches collected 462 gems and submitted none. These dated replays do not identify submission source or measure today's bot.

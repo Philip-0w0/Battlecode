@@ -1,0 +1,224 @@
+{
+  "input": {
+    "archive": "battlecode_v12.zip",
+    "entries": 28,
+    "language": "Python",
+    "current_active": "C:/battlecode/bots/my-bot/src",
+    "common_modules": 17,
+    "identical_modules": 7,
+    "reference_new_modules": 11,
+    "current_specializations_not_in_archive": [
+      "islands_bot.py",
+      "road_reliability.py"
+    ]
+  },
+  "strategy": [
+    {
+      "area": "Economy objective",
+      "behavior": "Rank camps by reward divided by terrain travel, estimated clearing time and overhead. Retain current-target, ready-reward and assignment adjustments; stagger replanning every eight rounds.",
+      "evidence": [
+        "economy_bot.py:391",
+        "economy_bot.py:438"
+      ]
+    },
+    {
+      "area": "Terrain and memory",
+      "behavior": "Cache full public terrain, spawn ownership and camp/altar/home distance fields. Shortlist camps by reachable walking costs before expensive live queries.",
+      "evidence": [
+        "navigation.py:13",
+        "navigation.py:22",
+        "bot.py:76",
+        "rows_bot.py:72",
+        "reliability.py:51"
+      ]
+    },
+    {
+      "area": "Safety",
+      "behavior": "Estimate personal danger from currently visible enemy stats and near-ready abilities; retain six-turn last-seen positions only as uncertainty. Bank earlier under threat or when already close to an altar.",
+      "evidence": [
+        "safety.py:68",
+        "safety.py:179",
+        "safety.py:213",
+        "risk_model.py:89",
+        "risk_model.py:112"
+      ]
+    },
+    {
+      "area": "Grouping/rescue",
+      "behavior": "Use bounded nearby healing, crowd control and attacks to help wounded allies. Local helper election reduces duplicate guards; protection is not a permanent team marching formation.",
+      "evidence": [
+        "protection.py:99",
+        "protection.py:185",
+        "protection.py:240"
+      ]
+    },
+    {
+      "area": "Draft",
+      "behavior": "Retain map reward and counter priorities, with Willow replacing Ryth on six fully hashed layouts and a resource-only Cassi choice on one verified layout.",
+      "evidence": [
+        "draft.py:14",
+        "draft.py:38",
+        "map_profile.py:34"
+      ]
+    },
+    {
+      "area": "Equipment",
+      "behavior": "Progress through Jungle, Monster and Bruiser equipment, retaining selected legacy recipes and Heart focus builds. Tavi can recycle Home health purchases at spawn within a bounded recovery loop.",
+      "evidence": [
+        "bot.py:146",
+        "bot.py:190",
+        "local_shop_recipes.py:11",
+        "main.py:38"
+      ]
+    },
+    {
+      "area": "Map policies",
+      "behavior": "Use map-signature policies for territory, sharing and clearing; selected Varg cleave scoring, Crater healer support and Vault goal construction remain specialised heuristics.",
+      "evidence": [
+        "map_dispatch.py:2",
+        "specific_maps.py:123",
+        "specific_maps.py:306",
+        "specific_maps.py:595",
+        "main.py:90",
+        "main.py:188"
+      ]
+    },
+    {
+      "area": "Runtimebudget",
+      "behavior": "Resume static setup between budget checks; revalidate cast state and turn identity; track executed attacks through kills; refresh enemies without opening unrelated camps on follow-up attacks.",
+      "evidence": [
+        "initialization.py:4",
+        "action_ready.py:14",
+        "economy_bot.py:351"
+      ]
+    }
+  ],
+  "cautions": [
+    {
+      "issue": "Clearedbossrewardcapture regression",
+      "evidence": [
+        "economy_bot.py:433",
+        "rows_bot.py:423",
+        "camp_policy.py:39",
+        "specific_maps.py:193"
+      ],
+      "impact": "Strength<200gateoccursbeforeReadycheck, rejectsevenalreadyclearedbossreward; currentbotcorrectlyexemptsreadygroup."
+    },
+    {
+      "issue": "Safety model is partly disabled",
+      "evidence": [
+        "safety.py:19",
+        "safety.py:21",
+        "protection.py:19"
+      ],
+      "impact": "FULL_PVE_SAFETY=False,ADVANCED_ACTIONS=False,FORCE_WOUNDED_RECALL=False. Richercampsafety,channelcancellation,collateralblocking,riskawarebankroute mostlynotactive. Do notclaimfullsimulatormandatesallactions."
+    },
+    {
+      "issue": "No travel escort in protect",
+      "evidence": [
+        "protection.py:240"
+      ],
+      "impact": "iftravel:returnFalse meansonlyalreadygroupedalliesguard; allyelectionusesChebyshev2goaldiskwhichcanincludeotherwallside. Crater/regroupgoalsalsoChebyshevdisks. Needtopology-awarelocalgoals."
+    },
+    {
+      "issue": "Heuristicriskbounds",
+      "evidence": [
+        "risk_model.py:94",
+        "safety.py:106"
+      ],
+      "impact": "WithADVANCED_ACTIONSFalse,walkoriginsarejustcurrentorigin; LOSaroundwallcornersnotmodeled. Fastestimatecancombineincompatiblebasic/castmaxima; deathdoesnotimmediatelyexpirememory. Conservativebutnotguaranteedsafe."
+    },
+    {
+      "issue": "Mapidentityfragility",
+      "evidence": [
+        "main.py:57",
+        "map_dispatch.py:2"
+      ],
+      "impact": "Mostspecializationsmatchdimensions+altars,notterrain/campcontenthash; editedtournamentmapwithsameoutlinecouldmisapplypatch. DraftWillowhasstrongerfullhashvalidation."
+    },
+    {
+      "issue": "Localoptimizationsmayregressglobalperformance",
+      "evidence": [
+        "main.py:90",
+        "draft.py:14",
+        "bot.py:146"
+      ],
+      "impact": "MoreWillowgrouping,terrainpathranking,gearrecyclingandhardcodedmapruleschangemanyvariables. Mustablateandtestpairedallmaps; priorcurrentbotincludesRoad/Islandsfixesthisarchivewoulddiscard."
+    }
+  ],
+  "transplanted": {
+    "path": "C:\\Users\\Phili\\.codex\\.chatgpt-projects\\g-p-6ace872315888191b7bd63f28b248625\\advance-1109\\runtime-hybrid\\src",
+    "new_modules": [
+      "action_ready.py",
+      "initialization.py"
+    ],
+    "changed_modules": [
+      "bot.py",
+      "economy_bot.py",
+      "rows_bot.py",
+      "current_content.py"
+    ],
+    "policy_preserved": [
+      "main dispatch",
+      "Road recall",
+      "Islands reachable campfilter",
+      "bossreward exemption",
+      "support",
+      "shops",
+      "draft",
+      "existingaoecache",
+      "campassignments"
+    ],
+    "tests": {
+      "legacy": 81,
+      "new": 11,
+      "total": 92,
+      "legacy_results": "C:\\Users\\Phili\\.codex\\.chatgpt-projects\\g-p-6ace872315888191b7bd63f28b248625\\advance-1109\\runtime-hybrid\\baseline-regressions.json",
+      "updated_fixture_files": [
+        "verification/scripts/test_aoe_planning.py",
+        "verification/scripts/test_current_content.py"
+      ],
+      "assertions_removed": 0
+    }
+  },
+  "recommended_next_ablations": [
+    "Measuredlocalgroupingwithterrainreachablegoals",
+    "Lowcostvisibleenemyburst/retreatsignalswithoutfullSafetyinterposition",
+    "Staggeredcampreplanning8rounds independentlyoffullpathranking",
+    "Terrainneutralhomeownershiponwallheavyapprovedmaps",
+    "Willowreplacementonlywherepairedwinsandgemlossvalidate"
+  ],
+  "scope": "Inspection of supplied v12. Final integration decisions and measurements are in v12-merge-2026-11-10.json.",
+  "source_hashes": {
+    "action_ready.py": "6c1cbc9f15cc43728f5c0e210bea47067b2d7e23fee804a8633cf11de650f09f",
+    "assignments.py": "cec0e914d88adc786dab2c31a8441c7934489f83dd26bf927ddf7054a25e3c4e",
+    "bot.py": "b26ac72327211a42977fdfbdcb07f4125ce1b2abfab517eed3247d346e3a9fb1",
+    "camp_policy.py": "e645136439ce1513e6af745f9bb986f9ea3aea574285d5e69899bd1095343bc5",
+    "coordination.py": "be6f7bcba952c29f921bacec5617b7299937913e7cc4bfd0a131b550e30820c7",
+    "current_content.py": "a0a2a38c82254878eed7433f2778b22af0a1a925a6353d5b2c3db0247350bd50",
+    "draft.py": "bf21acc682a7a9a09e211cef855b4395c0f7e53d82454f7ac4fdf6cb1ea93faf",
+    "economy_bot.py": "1e7b9998c06f959ac71f20ba898dfd87d0f973d8c0b73ee9f9548c136104bf55",
+    "equipment.py": "b602ff1fd1443136c294ca4c65bb62450bf275b28461c06037bd5a9932e6d748",
+    "initialization.py": "69d2ea86fd2378621f9bac30e77661eff4f668187de0a2754829671192d84e91",
+    "legacy_tactical.py": "fba7b527ad7877fdccf17975081c8b3dd2ebeb1ccc39501599093084bbe0e345",
+    "local_shop_recipes.py": "eacd44cfc5a39384ffe46acde3a1d777760c5e43f33497faae7658328dd9c22c",
+    "main.py": "2b5b0d98ce54af64ae4c1f130aa1ca6ad771b7e34a9df0bccd52c062192d4ca3",
+    "map_dispatch.py": "bd6cda1ae7b52c2ba16371ac5814a1e70166d2bf14cb9244993c930b557138cc",
+    "map_fuel.py": "c034676deb30d8890696e536872cc7db55e5caaf3c88bd967e6cb33f836a51fb",
+    "map_profile.py": "367e27268c7a9aef646f9a4bccab525d414be2160139828421c8363e889d1a3c",
+    "navigation.py": "736596443564b4cf48412d03f1fbfcb0e80193cf0dacc830a2ce1f1fec35e034",
+    "progress.py": "35524f7b8d5369ce14c920ce57a7653abe6a881b5bf7404d74aa2aeb7104d6cd",
+    "protection.py": "48dd637d82f917fbcd4d197abdc70b5c76ba8517acd821d4fe9ff02ec42e0c59",
+    "randomness.py": "6f9194ddc32cd12bf6bb290a61d1c17ff2cd366d7afd827bb51e16328646b26a",
+    "reliability.py": "191840be51d990942075e2002e035564fd167800fb2ba6e74b4c7e6d17df7da7",
+    "risk_model.py": "8d7dbaa8234f9751d602f556dae7c5fc90e9e504f329ca2abb184c14846068a6",
+    "rows_bot.py": "954635c40ea069594b9cc01f6314c5f8369c44af7fbdded978cc1df13f61ccc3",
+    "rows_coordination.py": "b08181d42fd39ffd8a83ade5ec97e718661cb57376d7473f6814f153bd2ee921",
+    "rows_draft.py": "3847e4abf602dd84f7665b67f22afba39f5b1ef93be4082f51b8935d8e9cb90e",
+    "safety.py": "a22774d6555975480ce0e03b18938f604974397d7765e6451ab9560a2e6ac78b",
+    "specific_maps.py": "526ebd6e252540edaef4d2064b7eff6ae65d2eaae861ba951d30c2a700b37775",
+    "tactics.py": "089e2c63c1fc2916a7fb75329753010c62cb90bd7a4ba0ac37f63121dcb03e5e"
+  },
+  "archive_sha256": null,
+  "provenance_note": "The original WeChat temporary ZIP was unavailable at final packaging. SHA256s of all 28 extracted reference Python modules are preserved; the tested reference is committed."
+}

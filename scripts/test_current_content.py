@@ -20,6 +20,11 @@ class CurrentTests(unittest.TestCase):
         self.Camp=Camp
         names='VARG TAVI VENDETTA RYTH WILLOW PRISM MARCELLA HEART_OF_RUIN STELLAR VESPER_VALE REN CASSI_AND_ISSAC'.split()
         self.fake=types.SimpleNamespace(Team=types.SimpleNamespace(ALLY=0,ENEMY=1),ChampionType=types.SimpleNamespace(HEART_OF_RUIN=12,PRISM=6,TAVI=11,STELLAR=5,WILLOW=8,CASSI=3),ItemType=object(),ChampionDraft=types.SimpleNamespace(**{n:i for i,n in enumerate(names)}),game_map=object(),Camp=Camp,Champion=type('Champion',(),{}),fuel_remaining=lambda:2000000)
+        self.fake.draft=types.SimpleNamespace(team_size=lambda:4)
+        self.fake.round_number=lambda:10
+        self.fake.ChampionState=types.SimpleNamespace(ALIVE=1,CAN_CAST=2048,RECALLING=2,
+            SUBMITTING_GEMS=4,TELEPORTING=4096,COMPLETED_TURN=32)
+        self.fake.BuffRestrictions=types.SimpleNamespace(CAST=4)
         sys.modules['cambc']=self.fake
         sys.modules['map_profile']=types.SimpleNamespace(profile=lambda:{})
         self.content=self.load('current_content')
@@ -91,13 +96,13 @@ class CurrentTests(unittest.TestCase):
         ability=types.SimpleNamespace(is_shield=lambda:False,is_dash=lambda:True,is_ready=lambda:True,
             info=lambda:types.SimpleNamespace(range=2,radius=1,exclusive_with_movement=False),
             valid_tiles=lambda:board,damage_amount=lambda:150,use=lambda p:used.append(p) or True)
-        me=types.SimpleNamespace(can_cast=lambda:True,position=lambda:P(0),health=lambda:1000,
+        me=types.SimpleNamespace(state=lambda:2049,restrictions=lambda:0,can_cast=lambda:True,position=lambda:P(0),health=lambda:1000,
                                  abilities=lambda:[ability],buffs=lambda:types.SimpleNamespace(has_shield=lambda:True))
         class Bot(self.content.CurrentContent):
             def check_budget(self): pass
             def blockers(self,me): return board
             def pressure(self,p): return risk
-        b=Bot();b.kind=12;b.recovering=recovering;b.target=0;b.groups=[group]
+        b=Bot();b.kind=12;b.action_round=10;b.recovering=recovering;b.target=0;b.groups=[group]
         return b,me,camp,used
     def test_nonworsening_dash_is_used_under_existing_pressure(self):
         b,me,camp,used=self.cast_fixture(risk=100)

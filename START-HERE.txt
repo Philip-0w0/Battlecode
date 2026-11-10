@@ -1,36 +1,21 @@
-Battlecode Cambridge Autumn 2026 - updated 27 October 2026
-Active project: C:\Battlecode\Battlecode
-Active Python bot: bots/my-bot/src
-Official CLI and SDK: 4.0.0. Validation engine: 2.0.0.
+Battlecode Cambridge - local release 10 November 2026
 
-Maps: 70 current official maps plus 17 preserved legacy filenames.
-The current manifest is .cambc/map-pool.json. Use current prefixed names.
+Project: C:\battlecode
+Active Python source: C:\battlecode\bots\my-bot\src
+CLI/SDK: 5.0.1. Engine: 3.0.0. Recorded pool: 128 official layouts.
+Previous active bot: before-v12-1110. Supplied reference: v12-reference-1110.
 
-Short check in PowerShell from this folder:
-  .\tools\cambc.exe run my-bot starter-python --map maps/00packs.map26a --rounds 80 --release
-Full match:
-  .\tools\cambc.exe run my-bot before-sdk4-1027 --map maps/00packs.map26a --release --view
-Refresh official maps:
-  .\tools\cambc.exe maps pull
-Source bundle:
-  .\tools\cambc.exe bundle my-bot -o submissions
+PowerShell from C:\battlecode:
+  .\tools\cambc.exe run my-bot before-v12-1110 --map 00packs --rounds 80 --release
+  .\tools\cambc.exe run my-bot v12-reference-1110 --map 00rows --release --view
+  python .\scripts\benchmark_pool.py --opponent before-v12-1110 --jobs 8 --label my-new-test
+Choose a new label for each benchmark; previous results are preserved.
 
-scripts/benchmark_current.py runs full matches on both sides and reads SDK 4
-JSON summaries. Default maps come from the current 70-map manifest.
-scripts/smoke_current_maps.py runs bounded compatibility checks.
+The current upload bundle is submissions/v12-merge-1110/my-bot.zip.
+Changes are local until you upload and activate a submission on the platform.
+No competition upload or activation was performed by this work.
 
-Heart of Ruin is supported by the active controller and draft fallback.
-The default keeps established draft priorities. bots/heart-of-ruin-sdk4 is
-an experimental gem-map draft: 0 wins in 4 screening games; not recommended.
-bots/sdk4-map-probe is an inspection opponent, not a competitive bot.
-
-Original source: bots/before-sdk4-1027
-Original runtime/config/maps: work/before-sdk4-runtime-1027
-See STRATEGY.md and STRATEGY-RESULTS.md for changes and evidence.
-No account login, competition submission, commit or push was performed.
-
-Latest local improvement: cleared boss rewards are collectible without live-boss combat requirements. Validated with 41 tests and six full regression matches. Previous source: bots/before-reward-fix-1027. Upload my-bot again to publish this change.
-
-C++ migration available as bots/my-bot-cpp. Python remains recommended after comparison regressions. See CPP-MIGRATION.txt for build commands, validation and native tools.
-
-Latest data-driven update: C++ sort-key snapshots and all-kind summary support. Python remains recommended. See MATCH-DATA-UPDATE.txt.
+Read STRATEGY.md for the algorithm review, STRATEGY-RESULTS.md for measured
+comparisons and remaining limitations, and benchmarks/v12-merge-2026-11-10.json
+for reproducible evidence. Ordinary wins include round-limit outcomes; target
+wins are reported separately. The C++ migration is an older experiment.

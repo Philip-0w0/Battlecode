@@ -31,6 +31,10 @@ def draft_order(chosen, enemy, info, rows=False, collision=False):
         order=[D.VARG,D.TAVI,D.VENDETTA,D.RYTH,D.VESPER_VALE,D.HEART_OF_RUIN]
     else:
         order=[D.VENDETTA,D.TAVI,D.VESPER_VALE,D.RYTH,D.VARG,D.HEART_OF_RUIN]
+    # A sustained healer replaces one grouped-map farmer. Three-pick and
+    # separate Collision/Rows policies keep their original rosters.
+    if bc.draft.team_size() >= 4 and info.get('has_groups',info['clustered']>0):
+        order = [D.WILLOW if c == D.RYTH else c for c in order]
     control=sum(e in (D.TAVI,D.PRISM,D.REN,D.RYTH,D.CASSI_AND_ISSAC,D.HEART_OF_RUIN) for e in enemy)
     if len(chosen)>=2 and control>=2: order=[D.MARCELLA]+order
     return order

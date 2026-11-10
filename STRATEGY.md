@@ -1,5 +1,48 @@
 # Battlecode strategy implementation
 
+## V12 integration and November replay review — 10 November 2026
+
+The active Python bot is `bots/my-bot/src`. It combines the supplied v12 policy with selected existing fixes and replay-derived corrections. The previous active source is preserved in `bots/before-v12-1110/src`; unchanged supplied v12 is `bots/v12-reference-1110/src`. No competition upload or activation is part of this release.
+
+### What the two strategies contribute
+
+| Area | Installed behavior and reason |
+| --- | --- |
+| Map planning | Retain v12's full public terrain and cached camp, home and altar distance fields. Rank reachable camps by actual walking cost before taking a ten-camp shortlist. Compare both spawns on neutral terrain for ownership. |
+| Farming | Score approximately `(gems + 0.18*gold)/(walking distance + estimated clear time + 7)`, with assignment, current-target and ready-reward adjustments. Stagger replanning to preserve action fuel. These weights are heuristics, not proven optimal values. |
+| Delivery | Keep v12's earlier small-load banking under actual danger and when already close to an altar. Personal recovery runs before banking. Preserve the eight-byte claims/alerts/endgame gem-total protocol. |
+| Combat | Refresh visible enemies after actions; attack resets record whether an attack actually executed, including a kill. Follow-up attacks retain the original camp objective. Restore the existing check that allies counted in a fight can actually contribute around terrain and are not recalling, banking or teleporting. |
+| Grouping | Keep bounded nearby healing/peeling and Crater's Willow/Varg support. Regroup and cover tiles must be connected to the ally by short walking paths, including the final post-attack positioning step. Do not turn every farmer into a permanent escort. |
+| Safety and vision | Use personally observed enemy stats, near-ready abilities and short-lived last-seen positions for risk estimates. Six-turn last-seen data marks uncertainty; it never authorizes attacking a hidden enemy. Approximate damage envelopes and wall rays are not an exact combat simulator. |
+| Gear | Keep v12's Jungle/Monster farming progression, Bruiser health/offense progression and selected legacy recipes. Road retains its intended legacy shopping after final controller construction. Tavi's bounded Home-health buy/sell recovery runs only at spawn; sales explain why total purchases can exceed earned gold. |
+| Draft and map tuning | Keep v12's map-profile draft choices, selected Willow substitutions, reachable ownership and specialised map policies. All 128 recorded layouts are included in validation; this does not prove each individual policy improved. |
+| Reward correctness | Preserve existing ability to collect an already cleared boss reward without the strength/partner requirements for fighting the live boss. Live or unseen bosses retain their combat restrictions. |
+| Runtime | Keep resumable static setup, action-boundary round/state/restriction checks, live blocker refreshes and conservative bounded yields. Hard fuel exhaustion remains measurable and unresolved. |
+
+### What the November battles show
+
+All seven supplied archives were indexed: **172,006 unique replay entries**. Only the **260 matches involving the known team UUID** were extracted and decoded, using the official engine-3 visualiser WASM and parser. There were **137 wins and 123 losses**; **105 wins reached the gem target**. The submitted source version is not recorded in these files, so these are historical observations, not measurements of this release.
+
+The team collected **223,029 gems**, submitted **165,895**, retained **9,473** and lost **47,661 (21.4%)**. Opponents lost **9,207 of 183,462 (5.0%)**. Total deaths were **4,486 versus 2,898**. These totals point to survival and delivery weaknesses even though raw collection was higher.
+
+Three losses received detailed timeline/substep review. In the Eight sample, 46 of 57 own deaths followed enemy champion/spell actions and 11 followed camp actions. The opponent made 64 deposits, with an 11-gem median, while our team deposited 11 gems once. In The Front sample, the opponent made 28 deposits (median eight gems); our team deposited none. These observations support banking small bags when already near an altar and preserving local rescue/disengagement. They do not establish that a universal eight-gem threshold or permanent grouping is optimal.
+
+The Front replay also shows Vendetta at `(36,24)` holding **83 gems for 720 rounds**, between two untouched **dormant** monoliths. The retreat code can treat both as threats and repeatedly choose its current tile. The installed fix extends Road's awake-only recall threat handling to the exact Front layout. Focused comparisons achieved 40 submitted gems on one side versus zero, while the other side remained scoreless. This is progress, not a solved map. Homonoliths has awake bosses overlapping spawn and remains a different unresolved problem.
+
+Decoder counters were checked against three independent official CLI exports: **234 counter checks passed**, along with map identity, outcome, roster and gem conservation. Per-action death attribution was inspected for the selected examples; it was not inferred for all 260 games. Reports retain the observed-versus-inferred distinction.
+
+### Experiments deliberately excluded
+
+The earlier generic carrier escort won 68/140 and only 3/12 cross-checks. Its broad rollout was not retained. The first v12 combination preserved the exact old Islands controller but lost both direct Islands checks against v12; the release uses v12's reachable-route planning instead. A small runtime-only transplant also left visibility errors and did not capture enough of v12's improvements. The richer full PvE simulation and forced evacuation settings remain disabled as in supplied v12; tested lightweight behavior is retained.
+
+### Runtime and evidence
+
+The project now uses **CLI/SDK 5.0.1 and engine 3.0.0**. The recorded pool has **128 maps**, including all previous 70 with identical bytes plus 58 additions. Engine 3 changes several champion stats and Greed/Skirmish items despite unchanged Python APIs; engine-2 comparisons are kept separate. CLI 5.0.0 and 5.0.1 retain the same engine WASM, but Python's VFS snapshot differs, so final validation uses fresh 5.0.1 builds.
+
+Final comparisons: **218/256 wins against the previous active bot**, including **184 target wins**, and **126/256 against unchanged supplied v12**, including **101 target wins**. These are local deterministic comparisons against two particular opponents, not tournament win-rate estimates. The direct v12 comparison must be considered alongside the gain over the old bot; the merge is not automatically superior to every part of its source strategies.
+
+Full results, source hashes, historical counters, decoder validation and offline tests are in `benchmarks/v12-merge-2026-11-10.json`. The detailed replay review is `benchmarks/november-replay-findings.md`; paired analysis is reproducible with `scripts/analyze_paired.py`. Raw large archives and traces remain local. Existing C++ migration evidence remains historical; this release is Python.
+
 ## Replay corpus iteration - 29 October 2026
 
 On the recognised Islands layout only, the camp selector removes disconnected camps before taking its nearest-ten shortlist. The previous order let ten unreachable inner-island camps hide every reachable gem route. `islands_bot.py` subclasses the existing economy controller; `main.py` selects it using the exact dimensions and ten altar coordinates. Other map controllers retain their selection policy.

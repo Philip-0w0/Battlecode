@@ -40,6 +40,10 @@ def selector(filename):
                C=NS(VARG=1, CASSI=2, VENDETTA=3, TAVI=4, RYTH=5, WILLOW=6),
                read_claims=lambda:[], has_jungle=lambda counts:False,
                dist=lambda a,b:0)
+    helpers = ast.parse((SOURCE/'navigation.py').read_text())
+    helper = next(n for n in helpers.body if isinstance(n,ast.FunctionDef) and n.name=='nearest_groups')
+    env['UNREACHABLE']=65535
+    exec(compile(ast.Module(body=[helper],type_ignores=[]),str(SOURCE/'navigation.py'),'exec'),env)
     exec(compile(ast.Module(body=[node], type_ignores=[]), str(SOURCE/filename), 'exec'), env)
     return env[node.name]
 
@@ -50,7 +54,7 @@ def fixture(state, strength=30, visible=True, competitor=False):
              centers=[Point() for _ in groups], group_stats=[(20000,200,True)]+([(100,0,False)] if competitor else []),
              path_fields=[NS(get=lambda point:1) for _ in groups], group_rewards=[g.reward for g in groups],
              failed_until={}, sleep_until={}, check_budget=lambda:None, kind=1, alert=None,
-             slot=0, allies_by_slot=[], allies=lambda:[], rows=False, corners=False,
+             slot=0, allies_by_slot=[], allies=lambda:[], rows=False, corners=False, collision=False,
              home_groups=[True]*n, crates=[False]*n, altar_groups=[False]*n,
              rows_owners={}, rows_home=[])
     me=NS(position=Point, strength=lambda:strength, health=lambda:100, max_health=lambda:1000, item_count=lambda:[])

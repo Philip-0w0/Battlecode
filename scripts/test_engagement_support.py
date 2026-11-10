@@ -66,7 +66,7 @@ def fixture(ally, gems=10, walls=()):
              favorable_fight=lambda *args:True,report=lambda *args:None)
     exec(compile(ast.Module(body=[method],type_ignores=[]),str(SOURCE),'exec'),env)
     bot=NS(check_budget=lambda:None,enemies=lambda:[enemy],allies=lambda:[me,ally],
-           terrain=Board(walls),crates=[],centers=[],corners=False,home_center=Point(6),enemy_center=Point(12),
+           home_field=NS(get=lambda p:3),enemy_field=NS(get=lambda p:9),terrain=Board(walls),crates=[],centers=[],corners=False,home_center=Point(6),enemy_center=Point(12),
            help_request=False,alert=None,claim=lambda _:None,combat=lambda *args,**kw:None,move=lambda *args:None)
     return lambda defend=False:env['engage'](bot,me,defend)
 

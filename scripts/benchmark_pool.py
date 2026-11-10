@@ -1,4 +1,4 @@
-"""Test both sides of the recorded published map pool in SDK 4 release mode."""
+"""Test both sides of the recorded published map pool in SDK 5 release mode."""
 import argparse
 import csv
 import hashlib
@@ -11,14 +11,14 @@ from review_results import read, summarize
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--bot', default='my-bot')
-    p.add_argument('--opponent', default='pre-strategy-v2')
+    p.add_argument('--opponent', default='v12-reference-1110')
     p.add_argument('--label', default='pool-benchmark')
     p.add_argument('--jobs', type=int, default=4)
     p.add_argument('--maps', nargs='+')
     p.add_argument('--pool-manifest', type=pathlib.Path)
     args = p.parse_args()
     root = pathlib.Path(__file__).resolve().parents[1]
-    pool = args.pool_manifest or root/'benchmarks/published-pool-2026-10-28.json'
+    pool = args.pool_manifest or root/'benchmarks/published-pool-2026-11-10.json'
     manifest = json.loads(pool.read_text())
     maps = {pathlib.Path(m['file']).stem: m for m in manifest['maps']}
     selected = args.maps or sorted(maps)

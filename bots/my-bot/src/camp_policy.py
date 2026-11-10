@@ -3,6 +3,7 @@ import cambc as bc
 from equipment import has_jungle
 from cambc import game_map as gm
 from coordination import read_claims
+from navigation import nearest_groups
 I,C=bc.ItemType,bc.ChampionType
 def dist(a,b): return a.chebyshev_distance(b)
 
@@ -11,11 +12,10 @@ def choose_economy_group(self, me):
     claims = read_claims()
     jungle = has_jungle(me.item_count())
     candidates = []
-    # Bound tactical work: prefilter geometrically before live queries.
-    shortlist = sorted(range(len(self.groups)), key=lambda i: dist(me.position(),self.centers[i]))[:10]
-    if self.target is not None and self.target not in shortlist: shortlist.append(self.target)
+    # Bound live queries after ranking cached terrain-aware travel costs.
+    shortlist = nearest_groups(self.path_fields, me.position(), self.target, self.check_budget)
     for index in shortlist:
-        if bc.fuel_remaining() < 900000 and candidates: break
+        if bc.fuel_remaining() < getattr(self,"safety_select_reserve",900000) and candidates: break
         self.check_budget()
         group = self.groups[index]
         if self.failed_until.get(index, 0) > bc.round_number():
@@ -35,10 +35,11 @@ def choose_economy_group(self, me):
         hp, incoming, boss = self.group_stats[index]
         if index == self.target and len(group) <= 4:
             hp = sum(c.health() if c.is_visible() else c.base_stats().base_health for c in group)
+        # Do not open a boss while weak. Other camps give much safer growth.
         ready = isinstance(state, gm.CampGroupRewardAvailable)
-        # Combat restrictions do not apply to a cleared group awaiting capture.
         if boss and not ready and me.strength() < 200:
             continue
+        if hasattr(self,"safe_camp") and not self.safe_camp(me,index,ready,hp,incoming): continue
         damage = max(1, me.strength() * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
         clear = 0 if ready else hp / damage
         value = (group.gem_value() + .18 * group.gold_value()) / (travel + clear + 7)

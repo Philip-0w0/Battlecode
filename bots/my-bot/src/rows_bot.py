@@ -3,9 +3,13 @@
 Only public SDK observations are used. Bytes 0..4 hold six packed camp claims; bytes 5..7 hold an expiring enemy alert.
 """
 import cambc as bc
+from risk_model import NORMAL_BANK
 from equipment import has_jungle
+from action_ready import actions_blocked,can_use_ability
+from initialization import advance_setup
 from rows_coordination import read_claims, write_claim, report, read_report
 from cambc import game_map as gm
+from navigation import distance_field, spawn_distances, nearest_groups
 from assignments import assign_home_camps
 
 T, I, C = bc.Team, bc.ItemType, bc.ChampionType
@@ -38,6 +42,9 @@ class Bot:
         self.return_from_inner = False
 
     def setup(self, me):
+        advance_setup(self, me, TurnBudget)
+
+    def setup_steps(self, me):
         self.groups = list(gm.camp_groups())
         self.camp_by_tile = {(c.spawn_position().x,c.spawn_position().y):c for g in self.groups for c in g}
         self.group_stats = [(sum(c.base_stats().base_health for c in g),
@@ -47,34 +54,44 @@ class Bot:
         self.centers = [m.positions()[0] for m in self.masks]
         self.altars = gm.altars().positions()
         self.spawn = gm.spawn_region(T.ALLY)
-        self.terrain = gm.walls() | gm.holes() | gm.altars() | gm.spawn_region(T.ENEMY)
+        self.static_terrain = gm.walls() | gm.holes() | gm.altars()
+        self.terrain = self.static_terrain | gm.spawn_region(T.ENEMY)
         self.allies_by_slot = sorted(bc.champions(T.ALLY), key=int)
         self.slot = [int(c) for c in self.allies_by_slot].index(int(me))
         self.kind = me.champion_name()
         self.collision = gm.width() == 41 and gm.height() == 41 and {(p.x,p.y) for p in self.altars} == {(27,20),(39,20)}
         self.home_bottom = min(p.y for p in self.spawn.positions()) < 10
+        yield
         self.path_fields = []
         for mask in self.masks:
             f = bc.DistanceField()
             f.compute(self.terrain, mask & ~self.terrain, bc.Bitboard())
             self.path_fields.append(f)
+            yield
+        yield
+        self.home_field, self.home_distances = spawn_distances(self.static_terrain, self.spawn, self.masks)
+        yield
+        self.enemy_field, self.enemy_distances = spawn_distances(
+            self.static_terrain, gm.spawn_region(T.ENEMY), self.masks)
         self.rows_owners = {}
         self.rows_home = set()
         if gm.width()==50 and gm.height()==50 and {(p.x,p.y) for p in self.altars}=={(15,16),(34,33)}:
-            home=self.spawn.positions()[0]
-            away=gm.spawn_region(T.ENEMY).positions()[0]
             camps=[]
             for index,center in enumerate(self.centers):
                 hp,incoming,boss=self.group_stats[index]
-                if not boss and dist(center,home)<dist(center,away):
-                    distance=self.path_fields[index].get(home)
+                if not boss and self.home_distances[index] < self.enemy_distances[index]:
+                    distance=self.home_distances[index]
                     if distance<10000:
                         self.rows_home.add(index)
                         camps.append((index,distance,incoming>0 and len(self.groups[index])>1))
             self.rows_owners=assign_home_camps(
                 [(slot,a.champion_name()==C.VARG) for slot,a in enumerate(self.allies_by_slot)],camps)
-        self.ready = True
+        tribute_goals = bc.Bitboard()
+        for altar in self.altars:
+            tribute_goals |= disk(altar, bc.constants.SUBMIT_GEMS_RANGE)
+        self.bank_field = distance_field(self.terrain, tribute_goals)
         me.set_priority(20 - self.slot)
+        self.ready = True
 
     def claim(self, index):
         self.target = index
@@ -99,6 +116,7 @@ class Bot:
         if step is None:
             return False
         self.check_budget()
+        if hasattr(self,"safety_step") and not self.safety_step(me,me.position()+step): return False
         if not self.blockers(me).is_set(me.position() + step) and me.can_move() and me.move(step):
             return True
         # A previously hidden blocker is now visible. Retry with a fresh mask.
@@ -108,16 +126,54 @@ class Bot:
         step = field.next_move_from(me.position())
         self.check_budget()
         return (step is not None and me.can_move()
-                and not self.blockers(me).is_set(me.position() + step) and me.move(step))
+                and not self.blockers(me).is_set(me.position() + step)
+                and (not hasattr(self,"safety_step") or self.safety_step(me,me.position()+step)) and me.move(step))
 
     def shop(self, me):
+        # Recycle existing equipment as temporary cash; retain no field reserve.
+        if (self.kind == C.TAVI and me.is_alive() and self.spawn.is_set(me.position())
+                and bc.fuel_remaining() >= 1200000 and me.can_sell() and me.health() < me.max_health()):
+            temporary = I.HOME_SHARD_OF_HEALTH
+            inventory = me.item_count()
+            if inventory[temporary] == 0:
+                borrowed = -1
+                if me.gold_count() < 30:
+                    # Prefer a shard, then an emblem. Never borrow the temporary bucket.
+                    for tier in (0, 1):
+                        for index in range(tier, len(inventory), 2):
+                            if inventory[index] and index != temporary and index != temporary + 1:
+                                borrowed = index
+                                break
+                        if borrowed >= 0:
+                            break
+                    if borrowed >= 0:
+                        me.sell(bc.ItemType(borrowed))
+                try:
+                    for _ in range(12):
+                        if bc.fuel_remaining() < 1000000 or bc.round_number() != self.action_round:
+                            break
+                        before = me.health()
+                        if before >= me.max_health():
+                            break
+                        count = min(4, me.gold_count() // 30)
+                        if count <= 0 or not me.can_buy(temporary, count):
+                            break
+                        me.buy(temporary, count)
+                        me.sell(temporary, count)
+                        if me.health() <= before:
+                            break
+                finally:
+                    if borrowed >= 0:
+                        shard = bc.ItemType(borrowed - borrowed % 2)
+                        count = 5 if borrowed % 2 else 1
+                        me.buy(shard, count)
         if me.gold_count() < 30:
             return
         # Complete each family before moving on. No repeated nonstacking passive.
         focus = self.kind in (C.STELLAR, C.CASSI, C.PRISM, C.WILLOW)
         stat = "FOCUS" if focus else "STRENGTH"
         build = [("JUNGLE", stat), ("MONSTER", stat),
-                 ("BRUISER", "HEALTH"), ("POWER", stat)]
+                 ("BRUISER", "HEALTH"), ("BRUISER", stat)]
         # A delivery crystal is a planned purchase, not a universal tax on income.
         crystal = bc.ConsumableType.TP_CRYSTAL
         if self.collision and self.kind in (C.VARG, C.TAVI) and me.gold_count() >= 160 and me.can_buy(crystal):
@@ -126,13 +182,13 @@ class Bot:
         if me.gold_count() >= 310 and me.can_buy(lock):
             me.buy(lock)
         counts = me.item_count()
-        for family, s in build:
+        for index, (family, s) in enumerate(build):
             shard = getattr(I, family + "_SHARD_OF_" + s)
             emblem = getattr(I, family + "_EMBLEM_OF_" + s)
-            if counts[emblem] and family != "POWER":
+            if counts[emblem] and index != len(build) - 1:
                 continue
             count = me.gold_count() // 30
-            if family != "POWER":
+            if index != len(build) - 1:
                 count = min(count, 5 - counts[shard])
             if count > 0 and me.can_buy(shard, count):
                 me.buy(shard, count)
@@ -175,6 +231,7 @@ class Bot:
             return False
         self.check_budget()
         me.attack(target)
+        self.attack_executed=True
         if not me.is_alive():
             return False
         # A kill can change action state; do not reset against stale state.
@@ -188,6 +245,7 @@ class Bot:
             if not ability.is_ready():
                 continue
             info = ability.info()
+            if hasattr(self,"safety_cast_allowed") and not self.safety_cast_allowed(me,ability,targets): continue
             if moved and info.exclusive_with_movement:
                 continue
             if ability.is_attack_reset():
@@ -196,10 +254,31 @@ class Bot:
                 if attacked and not me.can_attack() and in_range:
                     options.append((me.strength() * (2 if self.kind == C.VARG else 1), ability, None))
             elif ability.is_shield():
-                threats = [t for t in targets if t.is_visible() and t.strength() > 0
-                           and dist(me.position(), t.position()) <= t.attack_range()]
-                if threats and not me.buffs().has_shield():
-                    options.append((min(ability.shield_amount(), sum(t.strength() for t in threats) * 5), ability, None))
+                # Keep numeric threat snapshots; handles may leave vision.
+                threat_damage = 0
+                origin = me.position()
+                for threat in targets:
+                    if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                        self.check_budget()
+                    if not threat.is_visible():
+                        continue
+                    if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                        self.check_budget()
+                    strength = threat.strength()
+                    if strength <= 0:
+                        continue
+                    if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                        self.check_budget()
+                    if not threat.is_visible():
+                        continue
+                    position = threat.position()
+                    reach = threat.attack_range()
+                    if dist(origin, position) <= reach:
+                        threat_damage += strength
+                if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                    self.check_budget()
+                if threat_damage and not me.buffs().has_shield():
+                    options.append((min(ability.shield_amount(), threat_damage * 5), ability, None))
             elif ability.is_heal():
                 for ally in self.allies():
                     if ally != me and dist(me.position(), ally.position()) <= info.range:
@@ -209,21 +288,39 @@ class Bot:
                             urgency = 3 if ally.health() < danger * 2 + 60 else 1
                             options.append((heal * urgency, ability, ally))
             elif ability.is_damage() or ability.is_cc() or ability.is_aoe_damage():
-                valid = [t for t in targets if t.is_visible() and t.health() > 0
-                         and dist(me.position(), t.position()) <= info.range]
-                for target in valid:
-                    self.check_budget()
+                # Read live values once; option scoring uses primitive snapshots.
+                origin = me.position()
+                damage = me.focus() * info.modifier
+                live = []
+                for unit in targets:
+                    if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                        self.check_budget()
+                    if not unit.is_visible():
+                        continue
+                    if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                        self.check_budget()
+                    health = unit.health()
+                    if health > 0:
+                        if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                            self.check_budget()
+                        if not unit.is_visible():
+                            continue
+                        live.append((unit, unit.position(), health))
+                for target, position, health in live:
+                    if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
+                        self.check_budget()
+                    if dist(origin, position) > info.range:
+                        continue
                     if isinstance(target, bc.Camp) and not ability.can_target_camps(): continue
                     if isinstance(target, bc.Champion) and not ability.can_target_enemies(): continue
                     immune = isinstance(target, bc.Champion) and target.champion_name() == C.MARCELLA
                     if ability.is_cc() and immune and info.modifier == 0: continue
                     if ability.is_aoe_damage():
-                        affected = [t for t in targets if t.is_visible() and t.health() > 0
-                                    and dist(t.position(), target.position()) <= info.radius]
-                        value = sum(min(t.health(), me.focus() * info.modifier) for t in affected)
-                        destination = target.position()
+                        value = sum(min(hp, damage) for _, point, hp in live
+                                    if dist(point, position) <= info.radius)
+                        destination = position
                     else:
-                        value = min(target.health(), me.focus() * info.modifier)
+                        value = min(health, damage)
                         destination = target
                     if isinstance(target, bc.Champion):
                         value *= 1.5
@@ -233,6 +330,7 @@ class Bot:
         _, ability, target = max(options, key=lambda x: x[0])
         try:
             self.check_budget()
+            if not can_use_ability(me,self.action_round,bc):return False
             return ability.use(target)
         except bc.Error as error:
             if ability.is_attack_reset() and str(error) == "An available attack cannot be reset.":
@@ -241,11 +339,19 @@ class Bot:
             raise
 
     def combat(self, me, targets, moved=False):
-        attacked = self.attack(me, targets)
+        self.attack_executed=False
+        self.attack(me, targets)
         if not me.is_alive(): return
-        self.cast(me, targets, moved, attacked)
+        self.cast(me, targets, moved, self.attack_executed)
         if not me.is_alive(): return
-        self.attack(me, self.targets())  # A reset or spell may open a new target.
+        if me.can_attack():
+            self.check_budget()  # A cast may have consumed the remaining budget.
+            # Newly revealed enemies remain eligible; newly seen unrelated
+            # NPCs do not become an accidental second farming objective.
+            followup=self.enemies()+[c for c in targets if isinstance(c,bc.Camp)
+                                     and c.is_visible() and c.health()>0]
+            self.check_budget()
+            self.attack(me,followup)
 
     def bank(self, me):
         # Collision crystal delivery includes a recall/resupply exit plan.
@@ -276,11 +382,10 @@ class Bot:
         claims = read_claims()
         jungle = has_jungle(me.item_count())
         candidates = []
-        # Bound tactical work: prefilter geometrically before live queries.
-        shortlist = sorted(range(len(self.groups)), key=lambda i: dist(me.position(),self.centers[i]))[:10]
-        if self.target is not None and self.target not in shortlist: shortlist.append(self.target)
+        # Bound live queries after ranking cached terrain-aware travel costs.
+        shortlist = nearest_groups(self.path_fields, me.position(), self.target, self.check_budget)
         for index in shortlist:
-            if bc.fuel_remaining() < 900000 and candidates: break
+            if bc.fuel_remaining() < getattr(self,"safety_select_reserve",900000) and candidates: break
             self.check_budget()
             group = self.groups[index]
             owner=self.rows_owners.get(index)
@@ -314,10 +419,11 @@ class Bot:
             hp, incoming, boss = self.group_stats[index]
             if index == self.target and len(group) <= 4:
                 hp = sum(c.health() if c.is_visible() else c.base_stats().base_health for c in group)
+            # Do not open a boss while weak. Other camps give much safer growth.
             ready = isinstance(state, gm.CampGroupRewardAvailable)
-            # Combat restrictions do not apply to a cleared group awaiting capture.
             if boss and not ready and me.strength() < 200:
                 continue
+            if hasattr(self,"safe_camp") and not self.safe_camp(me,index,ready,hp,incoming): continue
             damage = max(1, me.strength() * (1.6 if self.kind == C.VARG and len(group) > 1 else 1.15))
             clear = 0 if ready else hp / damage
             value = (group.gem_value() + .18 * group.gold_value()) / (travel + clear + 7)
@@ -399,20 +505,24 @@ class Bot:
             self.claim(None)
             self.recovering = True
             return
-        if me.is_recalling() or me.is_submitting_gems() or me.is_teleporting():
+        self.safety_begin(me)
+        if self.safety_channel(me):
             return
         if not me.can_move() and not me.can_attack() and not me.can_cast():
             return
+        if actions_blocked(me,bc):return
         if self.spawn.is_set(me.position()):
             if me.health() < me.max_health():
                 return  # Spawn healing is at END of turn.
             self.recovering = False
+        if self.safety_act(me): return
         enemies = self.enemies()
         # Conservative danger snapshot, used only for scoring, never targeting.
         self.threats = [(c.spawn_position(), c.base_stats().base_strength, c.attack_range())
                         for c in self.visible_camps() if c.base_stats().base_strength>0]
         self.threats += [(e.position(),e.strength()+.3*e.focus(),4) for e in enemies]
         self.alert = self.communicate(me)
+        self.safety_threat_round = self.action_round
         pressure = self.pressure(me.position())
         if me.health() < max(me.max_health() * .14, pressure * 2.5 + 30):
             self.recovering = True
@@ -433,9 +543,9 @@ class Bot:
                 self.check_budget()
                 me.place_ward(min(placements.positions(), key=lambda p: dist(p, toward)))
         gems = me.gem_count()
-        near_altar = min(dist(me.position(), p) for p in self.altars)
+        near_altar = self.bank_field.get(me.position()) + bc.constants.SUBMIT_GEMS_RANGE
         needed = bc.constants.WINNING_GEMS - bc.global_submitted_gems(T.ALLY)
-        if gems and (gems >= 40 or near_altar <= 4 or gems >= needed or bc.round_number() > 1900):
+        if gems and (self.bank_committed or gems >= NORMAL_BANK or near_altar <= 4 or gems >= needed or bc.round_number() > 1900):
             self.claim(None)
             self.bank(me)
             return
@@ -525,5 +635,5 @@ class Bot:
         return False
 
     def check_budget(self):
-        if bc.round_number() != self.action_round or bc.fuel_remaining() < 250000:
+        if bc.fuel_remaining() < 350000 or bc.round_number() != self.action_round:
             raise TurnBudget()

@@ -3,6 +3,7 @@ import ast
 import collections
 import pathlib
 import os
+import runpy
 import types
 import unittest
 
@@ -57,6 +58,8 @@ class Ability:
 
 class Me:
     def __init__(self, abilities=None): self.spells = abilities or [Ability()]; self.focus_queries=0
+    def state(self): return 2049
+    def restrictions(self): return 0
     def can_cast(self): return True
     def abilities(self): return self.spells
     def position(self): return Point(0,0)
@@ -67,7 +70,7 @@ class YieldTurn(Exception): pass
 
 
 class Controller:
-    def __init__(self, stop_after=None): self.checks=0; self.stop_after=stop_after
+    def __init__(self, stop_after=None): self.checks=0; self.stop_after=stop_after; self.action_round=10
     def check_budget(self):
         self.checks+=1
         if self.stop_after is not None and self.checks>=self.stop_after: raise YieldTurn()
@@ -78,7 +81,13 @@ def load(path):
     cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='Bot')
     method=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='cast')
     context={'bc':types.SimpleNamespace(Camp=Camp,Champion=Champion,Vec2=Point,Error=RuntimeError),
-             'C':types.SimpleNamespace(MARCELLA=99),'dist':lambda a,b:a.chebyshev_distance(b)}
+             'C':types.SimpleNamespace(MARCELLA=99),'dist':lambda a,b:a.chebyshev_distance(b),
+             'can_use_ability':runpy.run_path(str(SOURCE/'action_ready.py'))['can_use_ability']}
+    context['bc'].round_number=lambda:10
+    context['bc'].fuel_remaining=lambda:3_000_000
+    context['bc'].ChampionState=types.SimpleNamespace(ALIVE=1,CAN_CAST=2048,RECALLING=2,
+        SUBMITTING_GEMS=4,TELEPORTING=4096,COMPLETED_TURN=32)
+    context['bc'].BuffRestrictions=types.SimpleNamespace(CAST=4)
     exec(compile(ast.Module(body=[method],type_ignores=[]),str(path),'exec'),context)
     return context['cast']
 
@@ -141,9 +150,22 @@ class AoePlanning(unittest.TestCase):
     def test_budget_boundary_aborts_before_ability_use(self):
         units=[Camp(x,Point(x,0)) for x in range(-3,4)]
         me=Me()
-        with self.assertRaises(YieldTurn):
-            CAST(Controller(stop_after=5),me,units)
-        self.assertEqual(me.spells[0].used,[])
+        api=CAST.__globals__['bc']
+        old_fuel=api.fuel_remaining
+        low=[False]
+        api.fuel_remaining=lambda:300000 if low[0] else 3000000
+        def health():
+            low[0]=True
+            return 100
+        units[0].health=health
+        controller=Controller()
+        def check_budget():
+            if api.fuel_remaining()<350000:raise YieldTurn()
+        controller.check_budget=check_budget
+        try:
+            with self.assertRaises(YieldTurn):CAST(controller,me,units)
+            self.assertEqual(me.spells[0].used,[])
+        finally:api.fuel_remaining=old_fuel
 
 
 if __name__=='__main__': unittest.main()
